@@ -30,6 +30,7 @@ void CV::setup( int width,int height, int framerate)
     //Allocate the Memory for the CV processes
     colorImg.allocate(width,height);
 	grayImage.allocate(width,height);
+    //colorImg.setROI(10, 10, 300, 220);
 	grayBg.allocate(width,height);
     grayFloatBg.allocate(width,height);
 	grayDiff.allocate(width,height);
@@ -55,6 +56,13 @@ void CV::setup( int width,int height, int framerate)
     recordFbo.begin();
     ofClear(0);
     recordFbo.end();
+    
+    bool bLearnBackground = true;
+    if (bLearnBackground == true)
+    {
+        grayBg = grayImage;
+        bLearnBackground = false;
+    }
 }
 //--------------------------------------------------------------
 void CV::releaseCamera()
@@ -62,7 +70,7 @@ void CV::releaseCamera()
     //vidGrabber.close();
 }
 //--------------------------------------------------------------
-void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation)
+void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,bool erode,bool dilate)
 {
     
     bool bNewFrame = false;
@@ -83,7 +91,7 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
 #else
         colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
 #endif
-
+    
         colorImg.mirror(mirrorV, mirrorH);
         grayImage = colorImg;
         
@@ -101,12 +109,22 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
             }
         }
         
+        if (erode)
+        {
+            grayImage.erode();
+        }
+        if (dilate)
+        {
+            grayImage.dilate();
+        }
+        grayImage.blurGaussian(blur);
         grayDiff.absDiff(grayBg, grayImage);
         grayDiff.threshold(threshold);
         contourFinder.findContours(grayDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
     }
 }
-void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold,int blur, int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,float brightness, float contrast)
+//--------------------------------------------------------------
+void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold,int blur, int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,float brightness, float contrast,bool erode,bool dilate)
 {
     
     bool bNewFrame = false;
@@ -143,7 +161,17 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
                 bLearnBackground = false;
             }
         }
-        grayImage.blur(blur);
+        
+        if (erode)
+        {
+            grayImage.erode();
+        }
+        if (dilate)
+        {
+            grayImage.dilate();
+        }
+        
+        grayImage.blurGaussian(blur);
         grayImage.brightnessContrast(brightness, contrast);
         grayDiff.absDiff(grayBg, grayImage);
         grayDiff.threshold(threshold);
@@ -205,20 +233,23 @@ void CV::subtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int thr
         unsigned char * threshpix = threshImage.getPixels();
         
         
-        for (int i = 0; i < (_width*_height); i ++) {
+        for (int i = 0; i < (_width*_height); i ++)
+        {
             
             int r = i * 4 + 0;
             int g = i * 4 + 1;
             int b = i * 4 + 2;
             int a = i * 4 + 3;
             
-            if( threshpix[i] > 1){
+            if( threshpix[i] > 1)
+            {
                 outpix[r] = ofClamp(diffpix[i]*10, 0, 255);
                 outpix[g] = ofClamp(diffpix[i]*10, 0, 255);
                 outpix[b] = ofClamp(diffpix[i]*10, 0, 255);
                 outpix[a] = threshpix[i];
-                
-            }else{
+            }
+            else
+            {
                 
                 outpix[r] = 0;
                 outpix[g] = 0;
@@ -236,7 +267,8 @@ void CV::subtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int thr
     
     pix.setFromPixels(outpix, _width, _height,4);
     
-    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis()-  backgroundTimer >  4000 ){
+    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis()-  backgroundTimer >  4000 )
+    {
         
         //could just add to runnign avg here;
         
@@ -308,6 +340,11 @@ bool CV::isSomeoneThere()
     } 
 }
 //--------------------------------------------------------------
+int CV::getNumberOfBlobs()
+{
+    return contourFinder.nBlobs;
+}
+//--------------------------------------------------------------
 void CV::drawLiveShadow()
 {
     ofSetColor(255, 255, 255);
@@ -353,7 +390,6 @@ void CV::drawLive()
 void CV::draw()
 {
     ofSetColor(255);
-    //Draw the CV data
 	colorImg.draw(ofGetWidth()-_width,0,_width/2,_height/2);
     ofDrawBitmapStringHighlight("Color Img",ofGetWidth()-_width+5,15);
 	grayImage.draw(ofGetWidth()-_width/2,0,_width/2,_height/2);
@@ -364,16 +400,11 @@ void CV::draw()
     ofDrawBitmapStringHighlight("Diff Img",ofGetWidth()-_width/2+5,135);
     recordFbo.draw(ofGetWidth()-_width,240,_width/2,_height/2);
     ofDrawBitmapStringHighlight("Buffer Img",ofGetWidth()-_width+5,245);
-    //outputTex.draw(ofGetWidth()-_width/2,240,_width/2,_height/2);
-    //ofDrawBitmapStringHighlight("Output Texture",ofGetWidth()-_width/2+5,245);
 }
 //--------------------------------------------------------------
 ofPixels CV::getRecordPixels()
 {
-    
-    
-        return pix;
-    
+    return pix;
 }
 //--------------------------------------------------------------
 ofVec2f CV::getBlobPath()
@@ -393,5 +424,4 @@ ofVec2f CV::getBlobPath()
     {
         return ofVec2f(320/2,240/2);
     }
-    
 }
