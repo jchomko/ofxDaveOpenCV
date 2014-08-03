@@ -1,13 +1,9 @@
-//
-//  OCV.h
-//  ShadowingStage1
-//
-//  Created by David Haylock on 28/07/2014.
-//
-//
-
-//#ifndef __ShadowingStage1__OCV__
-//#define __ShadowingStage1__OCV__
+//--------------------------------------------------------------
+//* Name: OCV.h
+//* Project: Playable City 2014 Award
+//* Author: David Haylock
+//* Creation Date: 28-07-2014
+//--------------------------------------------------------------
 
 #include <iostream>
 #include "ofMain.h"

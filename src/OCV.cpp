@@ -1,10 +1,9 @@
-//
-//  OCV.cpp
-//  ShadowingStage1
-//
-//  Created by David Haylock on 28/07/2014.
-//
-//
+//--------------------------------------------------------------
+//* Name: OCV.cpp
+//* Project: Playable City 2014 Award
+//* Author: David Haylock
+//* Creation Date: 28-07-2014
+//--------------------------------------------------------------
 
 #include "OCV.h"
 //--------------------------------------------------------------
@@ -356,7 +355,7 @@ void CV::drawLive()
 {
     ofSetColor(255);
     ofDrawBitmapStringHighlight("Live",ofGetWidth()-_width+5,15);
-	grayWarped.draw(ofGetWidth()-_width,0,_width,_height);
+	grayImage.draw(ofGetWidth()-_width,0,_width,_height);
     ofPushMatrix();
     ofTranslate(ofGetWidth()-_width, 0);
     ofBeginShape();
