@@ -50,15 +50,14 @@ public:
     void setColorInverse();
     void setCVMode(int mode);
     
-    
-    
     vector <vector <ofVec2f> > signedBlobPaths;
     
 private:
     
     int _width;
     int _height;
-    
+    ofPoint srcPts[4];
+    ofPoint dstPts[4];
     ofFbo recordFbo;
     ofPixels pix;
     
@@ -73,12 +72,15 @@ private:
     ofxCvGrayscaleImage 	grayBg;
     ofxCvGrayscaleImage 	grayDiff;
     ofxCvFloatImage         grayFloatBg; // for the progressive learning
+    ofxCvGrayscaleImage     grayWarped;
+    ofxCvGrayscaleImage     grayPostWarp;
     ofxCvContourFinder      contourFinder;
     ofxCvGrayscaleImage     threshImage;
     ofxCvGrayscaleImage     lastFrame;
     ofxCvGrayscaleImage     frameDiff;
     
     ofTexture           outputTex;
+    bool learnBackground;
     bool present;
     int mode;
     long backgroundTimer;

@@ -30,25 +30,12 @@ void CV::setup( int width,int height, int framerate)
     //Allocate the Memory for the CV processes
     colorImg.allocate(width,height);
 	grayImage.allocate(width,height);
-    //colorImg.setROI(10, 10, 300, 220);
 	grayBg.allocate(width,height);
     grayFloatBg.allocate(width,height);
 	grayDiff.allocate(width,height);
-    //lastFrame.allocate(width, height);
-    //frameDiff.allocate(width, height);
-    
-    //outputTex.allocate(width, height,GL_RGBA);
-    
     backgroundTimer = 0;
     threshold = 10;
     
-    //outpix = new unsigned char[width*height * 4];
-    
-    /*for(int i = 0; i <(width*height * 4);  i++ )
-    {
-        outpix[i] = 0;
-    }
-    */
     present = true;
     pixels = new unsigned char[320*240*4];
     
@@ -56,13 +43,8 @@ void CV::setup( int width,int height, int framerate)
     recordFbo.begin();
     ofClear(0);
     recordFbo.end();
-    
-    bool bLearnBackground = true;
-    if (bLearnBackground == true)
-    {
-        grayBg = grayImage;
-        bLearnBackground = false;
-    }
+
+    learnBackground = true;
 }
 //--------------------------------------------------------------
 void CV::releaseCamera()
@@ -74,6 +56,7 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
 {
     
     bool bNewFrame = false;
+    
     
 #ifdef DEBUG
     debugVideo.update();
@@ -93,6 +76,8 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
 #endif
     
         colorImg.mirror(mirrorV, mirrorH);
+        
+    
         grayImage = colorImg;
         
         if (useProgressiveLearn == true)
@@ -102,10 +87,10 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
         }
         else
         {
-            if (bLearnBackground == true)
+            if (learnBackground == true)
             {
                 grayBg = grayImage;
-                bLearnBackground = false;
+                learnBackground = false;
             }
         }
         
@@ -117,11 +102,13 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
         {
             grayImage.dilate();
         }
+        
         grayImage.blurGaussian(blur);
         grayDiff.absDiff(grayBg, grayImage);
         grayDiff.threshold(threshold);
         contourFinder.findContours(grayDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
     }
+    learnBackground = bLearnBackground;
 }
 //--------------------------------------------------------------
 void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold,int blur, int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,float brightness, float contrast,bool erode,bool dilate)
@@ -209,7 +196,6 @@ void CV::subtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int thr
         
         grayImage = colorImg;
         
-        
         frameDiff = colorImg;
         frameDiff.absDiff(lastFrame);
         
@@ -217,9 +203,7 @@ void CV::subtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int thr
         grayDiff = grayImage;
         
         threshImage = grayDiff;
-        
         threshImage.threshold(threshold);
-        
         threshImage.blur(blur);
         threshImage.brightnessContrast(0.8, 0.5);
         
@@ -235,7 +219,6 @@ void CV::subtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int thr
         
         for (int i = 0; i < (_width*_height); i ++)
         {
-            
             int r = i * 4 + 0;
             int g = i * 4 + 1;
             int b = i * 4 + 2;
@@ -250,18 +233,14 @@ void CV::subtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int thr
             }
             else
             {
-                
                 outpix[r] = 0;
                 outpix[g] = 0;
                 outpix[b] = 0;
                 outpix[a] = 0;
             }
-            
         }
-        
         lastFrame = colorImg;
     }
-    
     
     outputTex.loadData(outpix,_width,_height, GL_RGBA);
     
@@ -269,16 +248,14 @@ void CV::subtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int thr
     
     if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis()-  backgroundTimer >  4000 )
     {
-        
         //could just add to runnign avg here;
-        
         cout << "new back";
         grayBg = colorImg;
         present = false;
-        
     }
     
-    if(contourFinder.nBlobs > 0){
+    if(contourFinder.nBlobs > 0)
+    {
         backgroundTimer = ofGetElapsedTimeMillis();
         present = true;
     }
@@ -311,7 +288,6 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
     pix.setFromPixels(pixels, 320, 240, 4);
     
     //recordFbo.readToPixels(pix);
-    
 }
 //--------------------------------------------------------------
 bool CV::newFrame()
@@ -336,7 +312,6 @@ bool CV::isSomeoneThere()
         {
             signedBlobPaths[i].clear();
         }
-        
     } 
 }
 //--------------------------------------------------------------
@@ -360,8 +335,7 @@ void CV::drawAllPaths()
             signedBlobPaths[i].push_back(ofVec2f(contourFinder.blobs[i].centroid));
         }
     }
-    
-    
+
     if (!signedBlobPaths.empty())
     {
         for (int i = 0; i < signedBlobPaths.size(); i++)
@@ -376,30 +350,45 @@ void CV::drawAllPaths()
             ofEndShape(false);
         }
     }
-    
-    
 }
 //--------------------------------------------------------------
 void CV::drawLive()
 {
     ofSetColor(255);
     ofDrawBitmapStringHighlight("Live",ofGetWidth()-_width+5,15);
-	grayImage.draw(ofGetWidth()-_width,0,_width,_height);
+	grayWarped.draw(ofGetWidth()-_width,0,_width,_height);
+    ofPushMatrix();
+    ofTranslate(ofGetWidth()-_width, 0);
+    ofBeginShape();
+    ofNoFill();
+    ofSetColor(255, 0, 0);
+    for (int i = 0; i < 4; i++)
+    {
+        if (i == 0) {
+            ofVertex(dstPts[0]);
+            ofVertex(dstPts[3]);
+        }
+        ofVertex(dstPts[i]);
+       
+    }
+    ofEndShape(false);
+    ofPopMatrix();
 }
 //--------------------------------------------------------------
 void CV::draw()
 {
     ofSetColor(255);
 	colorImg.draw(ofGetWidth()-_width,0,_width/2,_height/2);
+    ofFill();
     ofDrawBitmapStringHighlight("Color Img",ofGetWidth()-_width+5,15);
-	grayImage.draw(ofGetWidth()-_width/2,0,_width/2,_height/2);
+	grayImage.draw(ofGetWidth()-_width/2,0,_width/2,_height/2);  // Gray Warped
     ofDrawBitmapStringHighlight("Gray Img",ofGetWidth()-_width/2+5,15);
 	grayBg.draw(ofGetWidth()-_width,120,_width/2,_height/2);
     ofDrawBitmapStringHighlight("BG Img",ofGetWidth()-_width+5,135);
 	grayDiff.draw(ofGetWidth()-_width/2,120,_width/2,_height/2);
     ofDrawBitmapStringHighlight("Diff Img",ofGetWidth()-_width/2+5,135);
     recordFbo.draw(ofGetWidth()-_width,240,_width/2,_height/2);
-    ofDrawBitmapStringHighlight("Buffer Img",ofGetWidth()-_width+5,245);
+    ofDrawBitmapStringHighlight("Buffer Img",ofGetWidth()-_width+5,255);
 }
 //--------------------------------------------------------------
 ofPixels CV::getRecordPixels()
