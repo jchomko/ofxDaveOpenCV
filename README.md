@@ -7,9 +7,13 @@ Specifically for use within Playable City Project Shadowing
 ## API
 ===
 // Setup 
+
+<code>
 void setup(int width, int height, int framerate);
+</code>
 
 // Subtraction Loop
+
 <code>
 	void subtractionLoop(bool bLearnBackground, bool useProgressiveLearn,float progressionRate,bool mirrorH,bool mirrorV,int threshold,int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation, float brightness,float contrast,bool erode,bool dilate);
 </code>
