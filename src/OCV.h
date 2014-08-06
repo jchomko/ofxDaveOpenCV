@@ -41,7 +41,7 @@ public:
     bool isSomeoneThere();
     bool newFrame();
     ofVec2f getBlobPath();
-    
+    vector <ofVec3f> getBlobsCentroid();
     // Setters
     void setColorInverse();
     void setCVMode(int mode);
@@ -50,14 +50,14 @@ public:
     vector <vector <ofVec2f> > signedBlobPaths;
     
 private:
-    
+
     int _width;
     int _height;
     ofPoint srcPts[4];
     ofPoint dstPts[4];
     ofFbo recordFbo;
     ofPixels pix;
-    
+    //vector<ofVec3f>centroids;
 #ifdef DEBUG
     ofVideoPlayer           debugVideo;
 #else

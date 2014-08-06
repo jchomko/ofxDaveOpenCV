@@ -424,3 +424,22 @@ ofVec2f CV::getBlobPath()
         return ofVec2f(320/2,240/2);
     }
 }
+
+/*/--------------------------------------------------------------
+vector<ofVec3f> CV::getBlobsCentroid()
+{
+    centroids.clear();
+    if (contourFinder.nBlobs > 0)
+    {
+        for (int i = 0; i < contourFinder.nBlobs; i++)
+        {
+            //If the Blob has an Area larger than 100 pixels find it and return its centroid
+            if (contourFinder.blobs[i].area >= 100)
+            {
+                centroids.assign(i,contourFinder.blobs[i].centroid);
+            }
+        }
+    }
+    return centroids;
+}
+*/
