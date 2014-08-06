@@ -21,7 +21,7 @@ void CV::setup( int width,int height, int framerate)
     debugVideo.play();
 #else
     vidGrabber.listDevices();
-    vidGrabber.setDeviceID(0);
+    vidGrabber.setDeviceID(1);
     vidGrabber.setDesiredFrameRate(framerate);
     vidGrabber.initGrabber(width,height);
 #endif
@@ -67,7 +67,7 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
 
     if (bNewFrame)
     {
-       
+        colorImg.setROI(0,0,_width,_height);
 #ifdef DEBUG
         colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
 #else
@@ -75,7 +75,7 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
 #endif
     
         colorImg.mirror(mirrorV, mirrorH);
-        
+        //colorImg.setROI(10, 10, 300, 220);
     
         grayImage = colorImg;
         
@@ -88,7 +88,8 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
         {
             if (learnBackground == true)
             {
-                grayBg = grayImage;
+                relearnBackground();
+                //grayBg = grayImage;
                 learnBackground = false;
             }
         }
@@ -105,7 +106,9 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
         grayImage.blurGaussian(blur);
         grayDiff.absDiff(grayBg, grayImage);
         grayDiff.threshold(threshold);
+        grayDiff.setROI(10, 10, 300, 220);
         contourFinder.findContours(grayDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
+        grayDiff.setROI(0, 0, 320, 240);
     }
     learnBackground = bLearnBackground;
 }
@@ -319,6 +322,11 @@ int CV::getNumberOfBlobs()
     return contourFinder.nBlobs;
 }
 //--------------------------------------------------------------
+void CV::relearnBackground()
+{
+    grayBg = grayImage;
+}
+//--------------------------------------------------------------
 void CV::drawLiveShadow()
 {
     ofSetColor(255, 255, 255);
@@ -388,6 +396,9 @@ void CV::draw()
     ofDrawBitmapStringHighlight("Diff Img",ofGetWidth()-_width/2+5,135);
     recordFbo.draw(ofGetWidth()-_width,240,_width/2,_height/2);
     ofDrawBitmapStringHighlight("Buffer Img",ofGetWidth()-_width+5,255);
+    //grayDiff.drawROI(ofGetWidth()-_width,240,_width/2,_height/2);
+    //ofDrawBitmapStringHighlight("Buffer Img",ofGetWidth()-_width+5,255);
+    
 }
 //--------------------------------------------------------------
 ofPixels CV::getRecordPixels()

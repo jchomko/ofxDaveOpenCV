@@ -45,6 +45,7 @@ public:
     // Setters
     void setColorInverse();
     void setCVMode(int mode);
+    void relearnBackground();
     
     vector <vector <ofVec2f> > signedBlobPaths;
     
