@@ -2,7 +2,12 @@ ofxDaveOpenCV
 =============
 
 Just a simple class that does all the openCV Things in smaller blocks
-Specifically for use within Playable City Project Shadowing
+Specifically for use within Playable City Project: Shadowing
+
+## Requirements
+
+ofxOpenCV
+ofxCalibration
 
 ## API
 ===

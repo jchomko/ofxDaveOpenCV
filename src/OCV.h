@@ -8,13 +8,20 @@
 #include <iostream>
 #include "ofMain.h"
 #include "ofxOpenCv.h"
+#include "calibrationScreen.h"
+#include "coordWarping.h"
+#include "guiQuad.h"
+#include "ofxXmlSettings.h"
 
-//#define DEBUG
+#define DEBUG
 
-class CV {
+class CV : public ofBaseApp {
     
 public:
     void setup(int width, int height, int framerate);
+
+    // Camera Calibration
+    void setupCameraView();
     
     // Specifically the PS3 eye needs releasing to ensure the locking mechanism is unlocked
     void releaseCamera();
@@ -33,6 +40,8 @@ public:
     void drawLive();
     void drawAllPaths();
     void drawLiveShadow();
+    void drawCalibration();
+    
     
     // Getters
     ofPixels getRecordPixels();
@@ -47,14 +56,25 @@ public:
     void setCVMode(int mode);
     void relearnBackground();
     
+    vector <ofVec2f> blobPath;
+    
     vector <vector <ofVec2f> > signedBlobPaths;
     
+    void mouseDragged(int x, int y, int button);
+    void mousePressed(int x, int y, int button);
+    void mouseReleased(int x, int y, int button);
+    
 private:
-
-    int _width;
-    int _height;
+    
+    ofxXmlSettings XML;
     ofPoint srcPts[4];
     ofPoint dstPts[4];
+    guiQuad cvWarpQuad;
+    coordWarping coordWarp;
+    
+    int _width;
+    int _height;
+    
     ofFbo recordFbo;
     ofPixels pix;
     //vector<ofVec3f>centroids;

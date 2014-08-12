@@ -21,7 +21,7 @@ void CV::setup( int width,int height, int framerate)
     debugVideo.play();
 #else
     vidGrabber.listDevices();
-    vidGrabber.setDeviceID(0);
+    vidGrabber.setDeviceID(1);
     vidGrabber.setDesiredFrameRate(framerate);
     vidGrabber.initGrabber(width,height);
 #endif
@@ -32,6 +32,7 @@ void CV::setup( int width,int height, int framerate)
 	grayBg.allocate(width,height);
     grayFloatBg.allocate(width,height);
 	grayDiff.allocate(width,height);
+    grayWarped.allocate(width,height);
     backgroundTimer = 0;
     threshold = 10;
     
@@ -44,6 +45,22 @@ void CV::setup( int width,int height, int framerate)
     recordFbo.end();
 
     learnBackground = true;
+    
+    srcPts[0].set(0, 0);
+	srcPts[1].set(_width, 0);
+	srcPts[2].set(_width, _height);
+	srcPts[3].set(0, _height);
+	
+    dstPts[0].set(0, 0);
+	dstPts[1].set(_width, 0);
+	dstPts[2].set(_width, _height);
+	dstPts[3].set(0, _height);
+    
+    cvWarpQuad.setup("Quad_");
+    cvWarpQuad.setup("Masker-Quad");
+    cvWarpQuad.setQuadPoints(srcPts);
+    cvWarpQuad.readFromFile("quad-settings.xml");
+    
 }
 //--------------------------------------------------------------
 void CV::releaseCamera()
@@ -67,7 +84,6 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
 
     if (bNewFrame)
     {
-        colorImg.setROI(0,0,_width,_height);
 #ifdef DEBUG
         colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
 #else
@@ -75,10 +91,9 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
 #endif
     
         colorImg.mirror(mirrorV, mirrorH);
-        //colorImg.setROI(10, 10, 300, 220);
-    
         grayImage = colorImg;
-        
+    
+
         if (useProgressiveLearn == true)
         {
             grayFloatBg.addWeighted(grayImage, progressionRate);
@@ -88,11 +103,20 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
         {
             if (learnBackground == true)
             {
-                relearnBackground();
-                //grayBg = grayImage;
+                //relearnBackground();
+                grayBg = grayWarped;
                 learnBackground = false;
             }
         }
+        
+        // We get back the warped coordinates - scaled to our camera size
+		ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
+        
+		// Lets warp with those cool coordinates!!!!!
+		grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
+		
+		// Lets calculate the openCV matrix for our coordWarping
+		coordWarp.calculateMatrix(warpedPts, dstPts);
         
         if (erode)
         {
@@ -103,12 +127,10 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
             grayImage.dilate();
         }
         
-        grayImage.blurGaussian(blur);
-        grayDiff.absDiff(grayBg, grayImage);
+        grayWarped.blurGaussian(blur);
+        grayDiff.absDiff(grayBg, grayWarped);
         grayDiff.threshold(threshold);
-        grayDiff.setROI(10, 10, 300, 220);
         contourFinder.findContours(grayDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
-        grayDiff.setROI(0, 0, 320, 240);
     }
     learnBackground = bLearnBackground;
 }
@@ -309,9 +331,11 @@ bool CV::isSomeoneThere()
     }
     else
     {
+        blobPath.clear();
         return false;
         for (int i = 0; i < signedBlobPaths.size(); i++)
         {
+           
             signedBlobPaths[i].clear();
         }
     } 
@@ -324,7 +348,7 @@ int CV::getNumberOfBlobs()
 //--------------------------------------------------------------
 void CV::relearnBackground()
 {
-    grayBg = grayImage;
+    grayBg = grayWarped;
 }
 //--------------------------------------------------------------
 void CV::drawLiveShadow()
@@ -333,29 +357,29 @@ void CV::drawLiveShadow()
     recordFbo.draw(0,0,ofGetWidth(),ofGetHeight());
 }
 //--------------------------------------------------------------
+void CV::drawCalibration()
+{
+    ofPushStyle();
+    ofSetColor(255);
+    colorImg.draw(0, 0,320,240);
+    ofSetColor(255);
+    grayWarped.draw(320,0,320,240);
+    cvWarpQuad.draw(0, 0, 320, 240,0,0,255,2);
+    ofPopStyle();
+}
+//--------------------------------------------------------------
 void CV::drawAllPaths()
 {
-    if (contourFinder.nBlobs > 0)
+    for (int i = 0; i < blobPath.size(); i++)
     {
-        for (int i = 0; i < contourFinder.nBlobs; i++)
+        ofNoFill();
+        ofBeginShape();
+        ofSetColor(255, 255, 0);
+        for (int p = 0; p < blobPath.size(); p++)
         {
-            signedBlobPaths[i].push_back(ofVec2f(contourFinder.blobs[i].centroid));
+            ofVertex(blobPath[p].x,blobPath[p].y);
         }
-    }
-
-    if (!signedBlobPaths.empty())
-    {
-        for (int i = 0; i < signedBlobPaths.size(); i++)
-        {
-            ofNoFill();
-            ofBeginShape();
-            ofSetColor(255, 255, 0);
-            for (int p = 0; p < signedBlobPaths[i].size(); p++)
-            {
-                ofVertex(signedBlobPaths[i][p].x,signedBlobPaths[i][p].y);
-            }
-            ofEndShape(false);
-        }
+        ofEndShape(false);
     }
 }
 //--------------------------------------------------------------
@@ -415,17 +439,34 @@ ofVec2f CV::getBlobPath()
             //If the Blob has an Area larger than 100 pixels find it and return its centroid
             if (contourFinder.blobs[i].area >= 100)
             {
-                return contourFinder.blobs[i].centroid;
+                blobPath.push_back(contourFinder.blobs[0].centroid);
+                return contourFinder.blobs[0].centroid;
             }
         }
     }
     else
     {
-        return ofVec2f(320/2,240/2);
+        //return ofVec2f(320/2,240/2);
     }
 }
+//--------------------------------------------------------------
+void CV::mouseDragged(int x, int y, int button){
+    cvWarpQuad.updatePoint(x, y, 0,0,320,240);
+}
+//--------------------------------------------------------------
+void CV::mousePressed(int x, int y, int button){
+    cvWarpQuad.selectPoint(x, y,0,0,320,240,30);
 
-/*/--------------------------------------------------------------
+}
+//--------------------------------------------------------------
+void CV::mouseReleased(int x, int y, int button){
+    cvWarpQuad.saveToFile("quad-settings.xml");
+}
+/*
+cvWarpQuad.updatePoint(x, y, 10+200,ofGetHeight()/2-camH, 640,480);
+cvWarpQuad.selectPoint(x, y, 10+200,ofGetHeight()/2-camH,640,480,30);
+cvWarpQuad.saveToFile("quad-settings.xml");
+/--------------------------------------------------------------
 vector<ofVec3f> CV::getBlobsCentroid()
 {
     centroids.clear();
