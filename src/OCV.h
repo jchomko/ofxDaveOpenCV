@@ -8,7 +8,6 @@
 #include <iostream>
 #include "ofMain.h"
 #include "ofxOpenCv.h"
-#include "calibrationScreen.h"
 #include "coordWarping.h"
 #include "guiQuad.h"
 #include "ofxXmlSettings.h"
