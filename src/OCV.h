@@ -14,6 +14,12 @@
 
 #define DEBUG
 
+struct paths
+{
+    vector <ofVec2f> bPath;
+    
+};
+
 class CV : public ofBaseApp {
     
 public:
@@ -40,6 +46,8 @@ public:
     void drawAllPaths();
     void drawLiveShadow();
     void drawCalibration();
+    void drawTracking();
+    void getAllPaths();
     
     
     // Getters
@@ -55,9 +63,11 @@ public:
     void setCVMode(int mode);
     void relearnBackground();
     
+    void setCalibration(bool setMode);
+    bool canDoCalibration;
     vector <ofVec2f> blobPath;
     
-    vector <vector <ofVec2f> > signedBlobPaths;
+    vector <paths> blobPaths;
     
     void mouseDragged(int x, int y, int button);
     void mousePressed(int x, int y, int button);

@@ -13,7 +13,8 @@ void CV::setup( int width,int height, int framerate)
     _width = width;
     _height = height;
     
-    signedBlobPaths.resize(10);
+    canDoCalibration = false;
+    blobPaths.resize(10);
     // Grabber initiallization
    
 #ifdef DEBUG
@@ -312,6 +313,15 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
     pix.setFromPixels(pixels, 320, 240, 4);
     
     //recordFbo.readToPixels(pix);
+    getAllPaths();
+    if (!isSomeoneThere())
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            blobPaths[i].bPath.clear();
+        }
+    }
+    
 }
 //--------------------------------------------------------------
 bool CV::newFrame()
@@ -332,19 +342,17 @@ bool CV::isSomeoneThere()
     else
     {
         blobPath.clear();
+        
         return false;
-        for (int i = 0; i < signedBlobPaths.size(); i++)
-        {
-           
-            signedBlobPaths[i].clear();
-        }
-    } 
+        
+    }
 }
 //--------------------------------------------------------------
 int CV::getNumberOfBlobs()
 {
     return contourFinder.nBlobs;
 }
+
 //--------------------------------------------------------------
 void CV::relearnBackground()
 {
@@ -357,14 +365,30 @@ void CV::drawLiveShadow()
     recordFbo.draw(0,0,ofGetWidth(),ofGetHeight());
 }
 //--------------------------------------------------------------
+void CV::setCalibration(bool setMode)
+{
+    canDoCalibration = setMode;
+}
+//--------------------------------------------------------------
 void CV::drawCalibration()
 {
     ofPushStyle();
     ofSetColor(255);
     colorImg.draw(0, 0,320,240);
+    ofDrawBitmapStringHighlight("Warper",0+5,15);
     ofSetColor(255);
     grayWarped.draw(320,0,320,240);
-    cvWarpQuad.draw(0, 0, 320, 240,0,0,255,2);
+    ofDrawBitmapStringHighlight("Warped Img",_width+5,15);
+   
+    if (canDoCalibration == true)
+    {
+        cvWarpQuad.draw(0, 0, 320, 240,0,255,0,2);
+    }
+    else
+    {
+        cvWarpQuad.draw(0, 0, 320, 240,255,0,0,2);
+    }
+    
     ofPopStyle();
 }
 //--------------------------------------------------------------
@@ -381,6 +405,52 @@ void CV::drawAllPaths()
         }
         ofEndShape(false);
     }
+}
+//--------------------------------------------------------------
+void CV::getAllPaths()
+{
+    for (int i = 0; i < contourFinder.nBlobs; i++)
+    {
+        blobPaths[0].bPath.push_back(contourFinder.blobs[0].centroid);
+    }
+}
+//--------------------------------------------------------------
+void CV::drawTracking()
+{
+    ofPushMatrix();
+    ofTranslate(320, 0);
+    ofSetColor(0, 0, 0);
+    ofFill();
+    ofRect(0, 0, 320, 240);
+    ofSetColor(255, 255, 255);
+    contourFinder.draw(0,0,320,240);
+    
+    ofSetColor(255, 255, 255);
+    
+    for (int i = 0; i < contourFinder.nBlobs; i++)
+    {
+        ofDrawBitmapStringHighlight(ofToString(i), contourFinder.blobs[i].boundingRect.x+5,contourFinder.blobs[i].boundingRect.y+10);
+        ofSetColor(255, 0, 0);
+        ofCircle(contourFinder.blobs[i].centroid, 3);
+    }
+    
+    if (!blobPaths.empty())
+    {
+        ofNoFill();
+        
+        for (int o = 0; o < blobPaths.size(); o++)
+        {
+            ofBeginShape();
+            for (int i = 0; i < blobPaths[o].bPath.size(); i++)
+            {
+                ofVertex(blobPaths[o].bPath[i].x,blobPaths[o].bPath[i].y);
+            }
+            ofEndShape(false);
+        }
+    }
+    
+    ofPopMatrix();
+    
 }
 //--------------------------------------------------------------
 void CV::drawLive()
@@ -408,21 +478,25 @@ void CV::drawLive()
 //--------------------------------------------------------------
 void CV::draw()
 {
-    ofSetColor(255);
-	colorImg.draw(ofGetWidth()-_width,0,_width/2,_height/2);
-    ofFill();
-    ofDrawBitmapStringHighlight("Color Img",ofGetWidth()-_width+5,15);
-	grayImage.draw(ofGetWidth()-_width/2,0,_width/2,_height/2);  // Gray Warped
-    ofDrawBitmapStringHighlight("Gray Img",ofGetWidth()-_width/2+5,15);
-	grayBg.draw(ofGetWidth()-_width,120,_width/2,_height/2);
-    ofDrawBitmapStringHighlight("BG Img",ofGetWidth()-_width+5,135);
-	grayDiff.draw(ofGetWidth()-_width/2,120,_width/2,_height/2);
-    ofDrawBitmapStringHighlight("Diff Img",ofGetWidth()-_width/2+5,135);
-    recordFbo.draw(ofGetWidth()-_width,240,_width/2,_height/2);
-    ofDrawBitmapStringHighlight("Buffer Img",ofGetWidth()-_width+5,255);
-    //grayDiff.drawROI(ofGetWidth()-_width,240,_width/2,_height/2);
-    //ofDrawBitmapStringHighlight("Buffer Img",ofGetWidth()-_width+5,255);
     
+    drawCalibration();
+    ofPushMatrix();
+    ofTranslate(0, 240);
+    ofSetColor(255);
+	colorImg.draw(0,0,_width/2,_height/2);
+    ofFill();
+    ofDrawBitmapStringHighlight("Color Img",0+5,15);
+	grayImage.draw(_width/2,0,_width/2,_height/2);  // Gray Warped
+    ofDrawBitmapStringHighlight("Gray Img",_width/2+5,15);
+	grayBg.draw(0,120,_width/2,_height/2);
+    ofDrawBitmapStringHighlight("BG Img",5,135);
+	grayDiff.draw(_width/2,120,_width/2,_height/2);
+    ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
+    recordFbo.draw(0,240,_width,_height);
+    ofDrawBitmapStringHighlight("Buffer Img",5,255);
+    drawTracking();
+    ofDrawBitmapStringHighlight("Contour Finder Img",_width+5,15);
+    ofPopMatrix();
 }
 //--------------------------------------------------------------
 ofPixels CV::getRecordPixels()
