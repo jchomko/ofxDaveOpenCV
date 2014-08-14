@@ -348,6 +348,29 @@ bool CV::isSomeoneThere()
     }
 }
 //--------------------------------------------------------------
+bool CV::isSomeoneInTheLight()
+{
+    if (contourFinder.nBlobs > 0)
+    {
+        for (int i = 0; i < contourFinder.nBlobs; i++)
+        {
+            if (contourFinder.blobs[i].centroid.x >= 40 && contourFinder.blobs[i].centroid.x <= _width-40 && contourFinder.blobs[i].centroid.y >= 40 && contourFinder.blobs[i].centroid.y <= _height-40)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        
+    }
+    else
+    {
+        return false;
+    }
+}
+//--------------------------------------------------------------
 int CV::getNumberOfBlobs()
 {
     return contourFinder.nBlobs;
@@ -379,7 +402,7 @@ void CV::drawCalibration()
     ofSetColor(255);
     grayWarped.draw(320,0,320,240);
     ofDrawBitmapStringHighlight("Warped Img",_width+5,15);
-   
+    
     if (canDoCalibration == true)
     {
         cvWarpQuad.draw(0, 0, 320, 240,0,255,0,2);
@@ -424,7 +447,17 @@ void CV::drawTracking()
     ofRect(0, 0, 320, 240);
     ofSetColor(255, 255, 255);
     contourFinder.draw(0,0,320,240);
-    
+   
+    ofNoFill();
+    if (isSomeoneInTheLight()) {
+        ofSetColor(0, 255, 0);
+    }
+    else
+    {
+        ofSetColor(255,25,0);
+    }
+    ofRect(40,40,_width-80,_height-80);
+  
     ofSetColor(255, 255, 255);
     
     for (int i = 0; i < contourFinder.nBlobs; i++)

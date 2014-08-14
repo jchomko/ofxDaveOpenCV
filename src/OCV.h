@@ -55,6 +55,9 @@ public:
     int getNumberOfBlobs();
     string getBlobData();
     bool isSomeoneThere();
+    bool isSomeoneInTheLight();
+    
+    
     bool newFrame();
     ofVec2f getBlobPath();
     vector <ofVec3f> getBlobsCentroid();
