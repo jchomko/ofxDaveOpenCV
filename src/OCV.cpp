@@ -47,6 +47,10 @@ void CV::setup( int width,int height, int framerate)
 
     learnBackground = true;
     
+    _offsetX = 0;
+    _offsetY = 0;
+    
+    
     srcPts[0].set(0, 0);
 	srcPts[1].set(_width, 0);
 	srcPts[2].set(_width, _height);
@@ -61,6 +65,13 @@ void CV::setup( int width,int height, int framerate)
     cvWarpQuad.setup("Masker-Quad");
     cvWarpQuad.setQuadPoints(srcPts);
     cvWarpQuad.readFromFile("quad-settings.xml");
+    
+}
+//--------------------------------------------------------------
+void CV::setTrackingBoundaries(int x, int y, int w, int h)
+{
+ 
+    
     
 }
 //--------------------------------------------------------------
@@ -344,8 +355,13 @@ bool CV::isSomeoneThere()
         blobPath.clear();
         
         return false;
-        
     }
+}
+//--------------------------------------------------------------
+void CV::setTrackingBoundaries(int offsetX, int offsetY)
+{
+    _offsetX = offsetX;
+    _offsetY = offsetY;
 }
 //--------------------------------------------------------------
 bool CV::isSomeoneInTheLight()
@@ -354,7 +370,7 @@ bool CV::isSomeoneInTheLight()
     {
         for (int i = 0; i < contourFinder.nBlobs; i++)
         {
-            if (contourFinder.blobs[i].centroid.x >= 40 && contourFinder.blobs[i].centroid.x <= _width-40 && contourFinder.blobs[i].centroid.y >= 40 && contourFinder.blobs[i].centroid.y <= _height-40)
+            if (contourFinder.blobs[i].centroid.x >= _offsetX && contourFinder.blobs[i].centroid.x <= _width-(_offsetX) && contourFinder.blobs[i].centroid.y >= _offsetY && contourFinder.blobs[i].centroid.y <= _height-(_offsetY))
             {
                 return true;
             }
@@ -363,7 +379,6 @@ bool CV::isSomeoneInTheLight()
                 return false;
             }
         }
-        
     }
     else
     {
@@ -375,7 +390,6 @@ int CV::getNumberOfBlobs()
 {
     return contourFinder.nBlobs;
 }
-
 //--------------------------------------------------------------
 void CV::relearnBackground()
 {
@@ -456,7 +470,7 @@ void CV::drawTracking()
     {
         ofSetColor(255,25,0);
     }
-    ofRect(40,40,_width-80,_height-80);
+    ofRect(_offsetX,_offsetY,_width-(_offsetX*2),_height-(_offsetY*2));
   
     ofSetColor(255, 255, 255);
     

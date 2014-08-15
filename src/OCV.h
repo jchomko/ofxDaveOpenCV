@@ -62,6 +62,9 @@ public:
     ofVec2f getBlobPath();
     vector <ofVec3f> getBlobsCentroid();
     // Setters
+    
+    void setTrackingBoundaries(int x, int y, int w, int h);
+    void setTrackingBoundaries(int offsetX, int offsetY);
     void setColorInverse();
     void setCVMode(int mode);
     void relearnBackground();
@@ -86,7 +89,8 @@ private:
     
     int _width;
     int _height;
-    
+    int _offsetX;
+    int _offsetY;
     ofFbo recordFbo;
     ofPixels pix;
     //vector<ofVec3f>centroids;
