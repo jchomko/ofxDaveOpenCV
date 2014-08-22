@@ -94,6 +94,7 @@ private:
     ofFbo recordFbo;
     ofPixels pix;
     //vector<ofVec3f>centroids;
+    
 #ifdef DEBUG
     ofVideoPlayer           debugVideo;
 #else
@@ -114,6 +115,7 @@ private:
     
     ofTexture           outputTex;
     bool learnBackground;
+    bool startLearn;
     bool present;
     int mode;
     long backgroundTimer;

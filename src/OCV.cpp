@@ -45,7 +45,8 @@ void CV::setup( int width,int height, int framerate)
     ofClear(0);
     recordFbo.end();
 
-    learnBackground = true;
+    //learnBackground = true;
+    startLearn = true;
     
     _offsetX = 0;
     _offsetY = 0;
@@ -105,7 +106,6 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
         colorImg.mirror(mirrorV, mirrorH);
         grayImage = colorImg;
     
-
         if (useProgressiveLearn == true)
         {
             grayFloatBg.addWeighted(grayImage, progressionRate);
@@ -115,9 +115,9 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
         {
             if (learnBackground == true)
             {
-                //relearnBackground();
                 grayBg = grayWarped;
                 learnBackground = false;
+                //startLearn = false;
             }
         }
         
@@ -393,7 +393,12 @@ int CV::getNumberOfBlobs()
 //--------------------------------------------------------------
 void CV::relearnBackground()
 {
-    grayBg = grayWarped;
+    startLearn = true;
+    if (startLearn == true)
+    {
+        grayBg = grayWarped;
+        startLearn = false;
+    }
 }
 //--------------------------------------------------------------
 void CV::drawLiveShadow()
