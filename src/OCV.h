@@ -11,6 +11,7 @@
 #include "coordWarping.h"
 #include "guiQuad.h"
 #include "ofxXmlSettings.h"
+#include "ofxMacamPs3Eye.h"
 
 //#define DEBUG
 
@@ -98,6 +99,7 @@ private:
 #ifdef DEBUG
     ofVideoPlayer           debugVideo;
 #else
+    //ofxMacamPs3Eye          vidGrabber;
     ofVideoGrabber          vidGrabber;
 #endif
     

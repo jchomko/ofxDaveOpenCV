@@ -25,6 +25,7 @@ void CV::setup( int width,int height, int framerate)
     vidGrabber.setDeviceID(0);
     vidGrabber.setDesiredFrameRate(framerate);
     vidGrabber.initGrabber(width,height);
+    //vidGrabber.setFlicker(0); /* 0 - no flicker, 1 - 50hz, 2 - 60hz */
 #endif
 
     //Allocate the Memory for the CV processes
