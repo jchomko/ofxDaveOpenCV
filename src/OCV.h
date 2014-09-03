@@ -12,7 +12,7 @@
 #include "guiQuad.h"
 #include "ofxXmlSettings.h"
 
-#define DEBUG
+//#define DEBUG
 
 struct paths
 {

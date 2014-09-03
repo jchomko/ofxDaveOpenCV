@@ -22,7 +22,7 @@ void CV::setup( int width,int height, int framerate)
     debugVideo.play();
 #else
     vidGrabber.listDevices();
-    vidGrabber.setDeviceID(1);
+    vidGrabber.setDeviceID(0);
     vidGrabber.setDesiredFrameRate(framerate);
     vidGrabber.initGrabber(width,height);
 #endif
