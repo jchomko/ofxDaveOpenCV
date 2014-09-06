@@ -274,7 +274,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         frameDiff.threshold(threshold);
         
         //Frame diff Contour Finder
-        contourFinder.findContours(frameDiff, 40, 10000, 1, false);
+        contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
         
         unsigned char * diffpix = grayImage.getPixels();
         
