@@ -30,21 +30,30 @@ void CV::setup( int width,int height, int framerate)
 
     //Allocate the Memory for the CV processes
     colorImg.allocate(width,height);
+    cout << "Allocating Color Image" << endl;
 	grayImage.allocate(width,height);
+    cout << "Allocating Gray Image" << endl;
 	grayBg.allocate(width,height);
+    cout << "Allocating Back Image" << endl;
     grayFloatBg.allocate(width,height);
+    cout << "Allocating Float Image" << endl;
 	grayDiff.allocate(width,height);
+    cout << "Allocating Diff Image" << endl;
     grayWarped.allocate(width,height);
-    
+    cout << "Allocating Warped Image" << endl;
     lastFrame.allocate(width, height);
+    cout << "Allocating Last Image" << endl;
     diffImage.allocate(width,height);
+    cout << "Allocating Diff Image" << endl;
     frameDiff.allocate(width,height);
+    cout << "Allocating Frame Diff Image" << endl;
     threshImage.allocate(width,height);
+    cout << "Allocating Thresh Image" << endl;
 
-    outputImage.allocate(width, height,OF_IMAGE_COLOR_ALPHA);
-    outpix = new unsigned char[width*height];
+    outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
+    outpix = new unsigned char[width*height*4];
     
-    for(int i = 0; i <width*height;  i++ ){
+    for(int i = 0; i <width*height*4;  i++ ){
         outpix[i] = 0;
     }
     backgroundTimer = 0;
@@ -282,7 +291,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         
         //        int c = 0;
         
-        for (int i = 0; i < _width*_height; i ++)
+        for (int i = 0; i < _width*_height*4; i ++)
         {
             if( threshpix[i] > threshold)
             { // used to be 6
@@ -298,7 +307,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         
         pastImages.push_back(lastFrame);
         outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
-        
+        //pix.setFromPixels(outputImage.getPixels(), 320, 240, 4);
+        //pix.setFromPixels(outpix, 320, 240, 4);
     }
     
     //For better bacgkround subtraction I'm saving past images and using them to subtract
@@ -346,7 +356,7 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
     // Compile the FBO
     recordFbo.begin();
     ofSetColor(backgroundColor);
-    ofFill();
+    /*ofFill();
     ofRect(0, 0, _width, _height);
     for (int i = 0; i < contourFinder.nBlobs; i++)
     {
@@ -357,7 +367,9 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
             ofVertex(contourFinder.blobs[i].pts[k].x, contourFinder.blobs[i].pts[k].y);
         }
         ofEndShape(true);
-    }
+    }*/
+    ofSetColor(255, 255, 255);
+    outputImage.draw(0, 0, 320,240);
     glReadPixels(0, 0, 320, 240, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     recordFbo.end();
     
@@ -386,18 +398,14 @@ bool CV::newFrame()
 //--------------------------------------------------------------
 bool CV::isSomeoneThere()
 {
-    
-    return present;
-    /*if (contourFinder.nBlobs > 0)
+    if (present == true)
     {
         return true;
     }
     else
     {
-        blobPath.clear();
-        
         return false;
-    }*/
+    }
 }
 //--------------------------------------------------------------
 void CV::setTrackingBoundaries(int offsetX, int offsetY)
@@ -596,8 +604,8 @@ void CV::draw()
 //--------------------------------------------------------------
 ofPixels CV::getRecordPixels()
 {
-    return outputImage;
-    //return pix;
+    
+    return pix;
 }
 //--------------------------------------------------------------
 ofVec2f CV::getBlobPath()
