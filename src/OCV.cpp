@@ -35,8 +35,22 @@ void CV::setup( int width,int height, int framerate)
     grayFloatBg.allocate(width,height);
 	grayDiff.allocate(width,height);
     grayWarped.allocate(width,height);
+    
+    lastFrame.allocate(width, height);
+    diffImage.allocate(width,height);
+    frameDiff.allocate(width,height);
+    threshImage.allocate(width,height);
+
+    outputImage.allocate(width, height,OF_IMAGE_COLOR_ALPHA);
+    outpix = new unsigned char[width*height];
+    
+    for(int i = 0; i <width*height;  i++ ){
+        outpix[i] = 0;
+    }
     backgroundTimer = 0;
-    threshold = 10;
+    present = true;
+    presenceTimer = 0;
+    absenceTimer = 0;
     
     present = true;
     pixels = new unsigned char[320*240*4];
@@ -203,7 +217,7 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
     }
 }
 //--------------------------------------------------------------
-void CV::subtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast)
+void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast)
 {
  
     bool bNewFrame = false;
@@ -224,78 +238,103 @@ void CV::subtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int thr
 #else
         colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
 #endif
+        colorImg.mirror(mirrorV, mirrorH);
+        //colorImg.invert();
+    
+        /* We get back the warped coordinates - scaled to our camera size
+		ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
         
-        if (bLearnBackground == true)
-        {
-            grayBg = grayImage;
-            bLearnBackground = false;
-        }
-        
+		// Lets warp with those cool coordinates!!!!!
+		grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
+		
+		// Lets calculate the openCV matrix for our coordWarping
+		coordWarp.calculateMatrix(warpedPts, dstPts);
+        */
+        virginGray = colorImg;
         grayImage = colorImg;
-        
         frameDiff = colorImg;
+        
+        //FrameDiff
         frameDiff.absDiff(lastFrame);
         
-        grayImage.absDiff(grayBg);
-        grayDiff = grayImage;
+        //Background sub for static background
+        //grayImage.absDiff(backImage);
         
-        threshImage = grayDiff;
-        threshImage.threshold(threshold);
-        threshImage.blur(blur);
-        threshImage.brightnessContrast(0.8, 0.5);
+        diffImage = colorImg;
         
-        //diffImage += threshImage;
-        grayDiff += frameDiff;
+        diffImage.absDiff(grayBg);
         
+        diffImage.threshold(threshold);
+        
+        diffImage += frameDiff;
+        
+        diffImage.blur(13);
+        
+        //Contour fining
         frameDiff.threshold(threshold);
-        contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
         
-        unsigned char * diffpix = grayDiff.getPixels();
-        unsigned char * threshpix = threshImage.getPixels();
+        //Frame diff Contour Finder
+        contourFinder.findContours(frameDiff, 40, 10000, 1, false);
         
+        unsigned char * diffpix = grayImage.getPixels();
         
-        for (int i = 0; i < (_width*_height); i ++)
+        unsigned char * threshpix = diffImage.getPixels();
+        
+        //        int c = 0;
+        
+        for (int i = 0; i < _width*_height; i ++)
         {
-            int r = i * 4 + 0;
-            int g = i * 4 + 1;
-            int b = i * 4 + 2;
-            int a = i * 4 + 3;
-            
-            if( threshpix[i] > 1)
-            {
-                outpix[r] = ofClamp(diffpix[i]*10, 0, 255);
-                outpix[g] = ofClamp(diffpix[i]*10, 0, 255);
-                outpix[b] = ofClamp(diffpix[i]*10, 0, 255);
-                outpix[a] = threshpix[i];
+            if( threshpix[i] > threshold)
+            { // used to be 6
+                outpix[i] = ofClamp(diffpix[i]/5, 0, 255);
             }
             else
             {
-                outpix[r] = 0;
-                outpix[g] = 0;
-                outpix[b] = 0;
-                outpix[a] = 0;
+                outpix[i] = 255;
             }
         }
+        
         lastFrame = colorImg;
+        
+        pastImages.push_back(lastFrame);
+        outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
+        
     }
     
-    outputTex.loadData(outpix,_width,_height, GL_RGBA);
+    //For better bacgkround subtraction I'm saving past images and using them to subtract
     
-    pix.setFromPixels(outpix, _width, _height,4);
-    
-    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis()-  backgroundTimer >  4000 )
+    if(pastImages.size() > 50)
     {
-        //could just add to runnign avg here;
-        cout << "new back";
-        grayBg = colorImg;
+        pastImages.erase(pastImages.begin());
+    }
+    
+    //On Exit
+    //this just checks if there's movement, and the presenceFinder contourFinder
+    // decides if there's a person there
+    //this needs to be more robust - so that it's not timer based, but knows when people are offscreen
+    
+    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer >  2000 )
+    {
+        if(pastImages.size() > 0)
+        {
+            grayBg = pastImages[0];
+        }
+    
         present = false;
     }
+    
+    
     
     if(contourFinder.nBlobs > 0)
     {
         backgroundTimer = ofGetElapsedTimeMillis();
+        
+        //While Present
         present = true;
+
+        absenceTimer = ofGetElapsedTimeMillis() + 5000;
     }
+
 }
 //--------------------------------------------------------------
 void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
@@ -347,7 +386,9 @@ bool CV::newFrame()
 //--------------------------------------------------------------
 bool CV::isSomeoneThere()
 {
-    if (contourFinder.nBlobs > 0)
+    
+    return present;
+    /*if (contourFinder.nBlobs > 0)
     {
         return true;
     }
@@ -356,7 +397,7 @@ bool CV::isSomeoneThere()
         blobPath.clear();
         
         return false;
-    }
+    }*/
 }
 //--------------------------------------------------------------
 void CV::setTrackingBoundaries(int offsetX, int offsetY)
@@ -543,7 +584,8 @@ void CV::draw()
     ofDrawBitmapStringHighlight("Gray Img",_width/2+5,15);
 	grayBg.draw(0,120,_width/2,_height/2);
     ofDrawBitmapStringHighlight("BG Img",5,135);
-	grayDiff.draw(_width/2,120,_width/2,_height/2);
+	frameDiff.draw(_width/2,120,_width/2,_height/2);
+    //grayDiff.draw(_width/2,120,_width/2,_height/2);
     ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
     recordFbo.draw(0,240,_width,_height);
     ofDrawBitmapStringHighlight("Buffer Img",5,255);
@@ -554,7 +596,8 @@ void CV::draw()
 //--------------------------------------------------------------
 ofPixels CV::getRecordPixels()
 {
-    return pix;
+    return outputImage;
+    //return pix;
 }
 //--------------------------------------------------------------
 ofVec2f CV::getBlobPath()

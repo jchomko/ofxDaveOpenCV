@@ -39,7 +39,7 @@ public:
     void subtractionLoop(bool bLearnBackground, bool useProgressiveLearn,float progressionRate,bool mirrorH,bool mirrorV,int threshold,int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,bool erode,bool dilate);
     
     // John's Loop
-    void subtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast);
+    void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast);
     
     void readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor);
     void draw();
@@ -110,10 +110,18 @@ private:
     ofxCvFloatImage         grayFloatBg; // for the progressive learning
     ofxCvGrayscaleImage     grayWarped;
     ofxCvGrayscaleImage     grayPostWarp;
+
     ofxCvContourFinder      contourFinder;
+    
+    ofxCvGrayscaleImage     diffImage;
     ofxCvGrayscaleImage     threshImage;
     ofxCvGrayscaleImage     lastFrame;
     ofxCvGrayscaleImage     frameDiff;
+    ofxCvGrayscaleImage     presentImage;
+    ofxCvGrayscaleImage     virginGray;
+    
+    vector<ofxCvGrayscaleImage> pastImages;
+    ofImage             outputImage;
     
     ofTexture           outputTex;
     bool learnBackground;
@@ -122,6 +130,8 @@ private:
     int mode;
     long backgroundTimer;
     int threshold;
+    long absenceTimer;
+    long presenceTimer;
     unsigned char * outpix;
     unsigned char * pixels;
     
