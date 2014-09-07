@@ -62,7 +62,7 @@ void CV::setup( int width,int height, int framerate)
     absenceTimer = 0;
     
     present = true;
-    pixels = new unsigned char[320*240*4];
+    pixels = new unsigned char[_width*_height*4];
     
     recordFbo.allocate(width, height,GL_RGBA);
     recordFbo.begin();
@@ -369,11 +369,11 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
         ofEndShape(true);
     }*/
     ofSetColor(255, 255, 255);
-    outputImage.draw(0, 0, 320,240);
-    glReadPixels(0, 0, 320, 240, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    outputImage.draw(0, 0, _width,_height);
+    glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     recordFbo.end();
     
-    pix.setFromPixels(pixels, 320, 240, 4);
+    pix.setFromPixels(pixels, _width, _height, 4);
     
     //recordFbo.readToPixels(pix);
     getAllPaths();
@@ -466,19 +466,19 @@ void CV::drawCalibration()
 {
     ofPushStyle();
     ofSetColor(255);
-    colorImg.draw(0, 0,320,240);
+    colorImg.draw(0, 0,_width,_height);
     ofDrawBitmapStringHighlight("Warper",0+5,15);
     ofSetColor(255);
-    grayWarped.draw(320,0,320,240);
+    grayWarped.draw(_width,0,_width,_height);
     ofDrawBitmapStringHighlight("Warped Img",_width+5,15);
     
     if (canDoCalibration == true)
     {
-        cvWarpQuad.draw(0, 0, 320, 240,0,255,0,2);
+        cvWarpQuad.draw(0, 0, _width, _height,0,255,0,2);
     }
     else
     {
-        cvWarpQuad.draw(0, 0, 320, 240,255,0,0,2);
+        cvWarpQuad.draw(0, 0, _width, _height,255,0,0,2);
     }
     
     ofPopStyle();
@@ -510,12 +510,12 @@ void CV::getAllPaths()
 void CV::drawTracking()
 {
     ofPushMatrix();
-    ofTranslate(320, 0);
+    ofTranslate(_width, 0);
     ofSetColor(0, 0, 0);
     ofFill();
-    ofRect(0, 0, 320, 240);
+    ofRect(0, 0, _width, _height);
     ofSetColor(255, 255, 255);
-    contourFinder.draw(0,0,320,240);
+    contourFinder.draw(0,0,_width,_height);
    
     ofNoFill();
     if (isSomeoneInTheLight()) {
@@ -583,7 +583,7 @@ void CV::draw()
     
     drawCalibration();
     ofPushMatrix();
-    ofTranslate(0, 240);
+    ofTranslate(0, _height);
     ofSetColor(255);
 	colorImg.draw(0,0,_width/2,_height/2);
     ofFill();
@@ -595,7 +595,7 @@ void CV::draw()
 	frameDiff.draw(_width/2,120,_width/2,_height/2);
     //grayDiff.draw(_width/2,120,_width/2,_height/2);
     ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
-    recordFbo.draw(0,240,_width,_height);
+    recordFbo.draw(0,_height,_width,_height);
     ofDrawBitmapStringHighlight("Buffer Img",5,255);
     drawTracking();
     ofDrawBitmapStringHighlight("Contour Finder Img",_width+5,15);
@@ -629,11 +629,11 @@ ofVec2f CV::getBlobPath()
 }
 //--------------------------------------------------------------
 void CV::mouseDragged(int x, int y, int button){
-    cvWarpQuad.updatePoint(x, y, 0,0,320,240);
+    cvWarpQuad.updatePoint(x, y, 0,0,_width,_height);
 }
 //--------------------------------------------------------------
 void CV::mousePressed(int x, int y, int button){
-    cvWarpQuad.selectPoint(x, y,0,0,320,240,30);
+    cvWarpQuad.selectPoint(x, y,0,0,_width,_height,30);
 
 }
 //--------------------------------------------------------------
