@@ -102,7 +102,7 @@ void CV::setTrackingBoundaries(int x, int y, int w, int h)
 //--------------------------------------------------------------
 void CV::releaseCamera()
 {
-    //vidGrabber.close();
+    vidGrabber.close();
 }
 //--------------------------------------------------------------
 void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,bool erode,bool dilate)
