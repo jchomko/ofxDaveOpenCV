@@ -277,7 +277,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         
         diffImage += frameDiff;
         
-        diffImage.blur(13);
+        diffImage.blur(blur);
         
         //Contour fining
         frameDiff.threshold(threshold);
