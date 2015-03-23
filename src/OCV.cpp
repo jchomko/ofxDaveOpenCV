@@ -49,6 +49,8 @@ void CV::setup( int width,int height, int framerate)
     cout << "Allocating Frame Diff Image" << endl;
     threshImage.allocate(width,height);
     cout << "Allocating Thresh Image" << endl;
+    virginGray.allocate(width,height);
+    cout << "Allocating VirginGray Image" << endl;
 
     outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
     outpix = new unsigned char[width*height*4];
@@ -269,8 +271,6 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         diffImage = grayImage;	
 
         //frameDiff.brightnessContrast(brightness, contrast);
-
-
         
         //FrameDiff
         frameDiff.absDiff(lastFrame);
@@ -301,14 +301,19 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //unsigned char * threshpix = diffImage.getPixels();
         
         //Image creation
-        diffImage = grayBg;
-        diffImage -= grayBg;
-        virginGray = diffImage;
+        //diffImage = grayBg;
+        //diffImage -= grayBg;
+
+        diffImage.absDiff(grayBg);
+        
+        diffImage.threshold(threshold);
 
         diffImage += frameDiff;
 
         diffImage.adaptiveThreshold(blur);
         
+        //diffImage.adaptiveThreshold(blur);
+
         diffImage.blur(3);
 
         //diffImage.dilate();
@@ -333,6 +338,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //lastFrame = colorImg;
 	    //lastFrame.brightnessContrast(brightness, contrast);
         
+        diffImage.invert();
         //outputImage = diffImage;
         outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
 
@@ -619,7 +625,7 @@ void CV::draw()
     ofPushMatrix();
     ofTranslate(0, _height);
     ofSetColor(255);
-	virginGray.draw(0,0,_width/2,_height/2);
+	diffImage.draw(600,0,_width/2,_height/2);
     ofFill();
     ofDrawBitmapStringHighlight("Color Img",0+5,15);
 	grayImage.draw(_width/2,0,_width/2,_height/2);  // Gray Warped
