@@ -302,8 +302,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         
         //Image creation
         diffImage = grayBg;
-        diffImage -= grayBg;
+        
 
+        virginGray = diffImage -= grayBg;
         diffImage += frameDiff;
 
         diffImage.adaptiveThreshold(blur);
@@ -328,7 +329,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //     }
         // }
         
-        
+        virginGray = diffImage;
         //lastFrame = colorImg;
 	    //lastFrame.brightnessContrast(brightness, contrast);
         
@@ -618,7 +619,7 @@ void CV::draw()
     ofPushMatrix();
     ofTranslate(0, _height);
     ofSetColor(255);
-	colorImg.draw(0,0,_width/2,_height/2);
+	virginGray.draw(0,0,_width/2,_height/2);
     ofFill();
     ofDrawBitmapStringHighlight("Color Img",0+5,15);
 	grayImage.draw(_width/2,0,_width/2,_height/2);  // Gray Warped
