@@ -268,7 +268,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 	    frameDiff = grayImage;	
         diffImage = grayImage;	
 
-//	frameDiff.brightnessContrast(brightness, contrast);
+        //frameDiff.brightnessContrast(brightness, contrast);
 
 
         
@@ -281,11 +281,6 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //diffImage = colorImg;
         
         diffImage.absDiff(grayBg);
-        
-
-        //diffImage.adaptiveThreshold(240);
-        
-
         //diffImage += frameDiff;
         
        
@@ -306,11 +301,15 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 
         diffImage.threshold(threshold);
 
+        diffImage.adaptiveThreshold(100);
+        
+
 
         diffImage.blur(blur);
 
+        diffImage.dilate();
 
-        diffImage.invert();
+        //diffImage.invert();
 
         //        int c = 0;
         
@@ -326,13 +325,16 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //     }
         // }
         
-        lastFrame = grayImage;
+        
         //lastFrame = colorImg;
 	    //lastFrame.brightnessContrast(brightness, contrast);
-        pastImages.push_back(lastFrame);
-
+        
         //outputImage = diffImage;
         outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
+
+
+        lastFrame = grayImage;
+        pastImages.push_back(lastFrame);
 
         //outputImage.setFromPixels(diffImage.getPixels())
         //outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
@@ -367,11 +369,10 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
     if(contourFinder.nBlobs > 0)
     {
         backgroundTimer = ofGetElapsedTimeMillis();
-        
         //While Present
         present = true;
-
         absenceTimer = ofGetElapsedTimeMillis() + 5000;
+ 
     }
 
 }
