@@ -302,9 +302,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         
         //Image creation
         diffImage = grayBg;
-        
+        diffImage -= grayBg;
+        virginGray = diffImage;
 
-        virginGray = diffImage -= grayBg;
         diffImage += frameDiff;
 
         diffImage.adaptiveThreshold(blur);
@@ -329,7 +329,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //     }
         // }
         
-        virginGray = diffImage;
+        // virginGray = diffImage;
         //lastFrame = colorImg;
 	    //lastFrame.brightnessContrast(brightness, contrast);
         
