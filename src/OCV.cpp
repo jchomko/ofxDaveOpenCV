@@ -303,9 +303,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //Image creation
         diffImage = grayBg;
         diffImage -= grayBg;
+        diffImage.invert();
         
-        diffImage.threshold(threshold);
-        
+        //diffImage.threshold(threshold);
         diffImage += frameDiff;
 
         diffImage.adaptiveThreshold(2.5*blur);
