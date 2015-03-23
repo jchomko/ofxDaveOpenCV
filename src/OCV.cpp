@@ -259,14 +259,14 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 		// Lets calculate the openCV matrix for our coordWarping
 		coordWarp.calculateMatrix(warpedPts, dstPts);
         */
-        virginGray = colorImg;
+        //virginGray = colorImg;
         grayImage = colorImg;
 
-        frameDiff = colorImg;
+        //frameDiff = colorImg;
+        grayImage.brightnessContrast(brightness, contrast);
 
-	grayImage.brightnessContrast(brightness, contrast);
-
-	frameDiff = grayImage;	diffImage = grayImage;	
+	    frameDiff = grayImage;	
+        diffImage = grayImage;	
 //	frameDiff.brightnessContrast(brightness, contrast);
 
 
@@ -311,11 +311,12 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
             }
         }
         
-        lastFrame = colorImg;
-	lastFrame.brightnessContrast(brightness, contrast);
+        //lastFrame = colorImg;
+	    //lastFrame.brightnessContrast(brightness, contrast);
         
 
-        pastImages.push_back(lastFrame);
+        pastImages.push_back(grayImage);
+        
         outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
         //pix.setFromPixels(outputImage.getPixels(), 320, 240, 4);
         //pix.setFromPixels(outpix, 320, 240, 4);
