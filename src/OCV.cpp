@@ -301,19 +301,23 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //unsigned char * threshpix = diffImage.getPixels();
         
         //Image creation
-        diffImage = grayBg;
-        diffImage -= grayBg;
-        diffImage.invert();
+       // diffImage = grayBg;
+        //diffImage -= grayBg;
+        //diffImage.invert();
         
         //diffImage.threshold(threshold);
-        diffImage += frameDiff;
 
-        diffImage.adaptiveThreshold(2.5*blur);
+        diffImage = frameDiff;
+        diffImage.blur(blur)
+
+        diffImage.adaptiveThreshold(threshold);
         
         //diffImage.adaptiveThreshold(blur);
+        diffImage.blur(blur);
 
-        diffImage.blur(3);
-
+        
+        diffImage.invert();
+        
         //diffImage.dilate();
 
         //diffImage.invert();
@@ -335,8 +339,6 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         // virginGray = diffImage;
         //lastFrame = colorImg;
 	    //lastFrame.brightnessContrast(brightness, contrast);
-        
-        diffImage.invert();
         //outputImage = diffImage;
         outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
 
