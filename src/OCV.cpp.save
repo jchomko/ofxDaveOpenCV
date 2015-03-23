@@ -1,3 +1,4 @@
+
 //--------------------------------------------------------------
 //* Name: OCV.cpp
 //* Project: Playable City 2014 Award
@@ -262,11 +263,13 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         virginGray = colorImg;
         grayImage = colorImg;
 
-        frameDiff = colorImg;
+//        frameDiff = colorImg;
 
 	grayImage.brightnessContrast(brightness, contrast);
 
-	frameDiff = grayImage;	diffImage = grayImage;	
+	diffImage = grayImage;	
+	frameDiff = grayImage;
+
 //	frameDiff.brightnessContrast(brightness, contrast);
 
 
