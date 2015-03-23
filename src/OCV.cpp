@@ -323,7 +323,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 	    //lastFrame.brightnessContrast(brightness, contrast);
         pastImages.push_back(lastFrame);
 
-        outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
+        outputImage = diffImage;
+        //outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
         //pix.setFromPixels(outputImage.getPixels(), 320, 240, 4);
         //pix.setFromPixels(outpix, 320, 240, 4);
     }
