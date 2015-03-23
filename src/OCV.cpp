@@ -301,16 +301,14 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //unsigned char * threshpix = diffImage.getPixels();
         
         //Image creation
-        //diffImage = grayBg;
-        //diffImage -= grayBg;
-
-        diffImage.absDiff(grayBg);
+        diffImage = grayBg;
+        diffImage -= grayBg;
         
         diffImage.threshold(threshold);
-
+        
         diffImage += frameDiff;
 
-        diffImage.adaptiveThreshold(blur);
+        diffImage.adaptiveThreshold(2.5*blur);
         
         //diffImage.adaptiveThreshold(blur);
 
@@ -625,7 +623,7 @@ void CV::draw()
     ofPushMatrix();
     ofTranslate(0, _height);
     ofSetColor(255);
-	diffImage.draw(600,0,_width/2,_height/2);
+	
     ofFill();
     ofDrawBitmapStringHighlight("Color Img",0+5,15);
 	grayImage.draw(_width/2,0,_width/2,_height/2);  // Gray Warped
@@ -637,6 +635,8 @@ void CV::draw()
     ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
     recordFbo.draw(0,_height,_width,_height);
     ofDrawBitmapStringHighlight("Buffer Img",5,255);
+
+    diffImage.draw(240,0,_width/2,_height/2);
     drawTracking();
     ofDrawBitmapStringHighlight("Contour Finder Img",_width+5,15);
     ofPopMatrix();
