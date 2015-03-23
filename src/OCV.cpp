@@ -274,13 +274,19 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         
         //FrameDiff
         frameDiff.absDiff(lastFrame);
+        frameDiff.threshold(threshold);
+
+         //Frame diff Contour Finder
+        contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
         
+
         //Background sub for static background
         //grayImage.absDiff(backImage);
         
         //diffImage = colorImg;
         
-        diffImage.absDiff(grayBg);
+        //diffImage.absDiff(grayBg);
+       
         //diffImage += frameDiff;
         
        
@@ -289,25 +295,22 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //frameDiff.threshold(threshold);
         //frameDiff.adaptiveThreshold(240);
 
-        //Frame diff Contour Finder
-        contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
-        
+       
         //unsigned char * diffpix = grayImage.getPixels();
         
         //unsigned char * threshpix = diffImage.getPixels();
         
+        //Image creation
+        diffImage = grayBg;
+        diffImage -= grayBg;
 
         diffImage += frameDiff;
 
-        diffImage.threshold(threshold);
-
-        diffImage.adaptiveThreshold(100);
+        diffImage.adaptiveThreshold(blur);
         
+        diffImage.blur(3);
 
-
-        diffImage.blur(blur);
-
-        diffImage.dilate();
+        //diffImage.dilate();
 
         //diffImage.invert();
 
@@ -333,7 +336,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
 
 
-        lastFrame = grayImage;
+        lastFrame = colorImg;
         pastImages.push_back(lastFrame);
 
         //outputImage.setFromPixels(diffImage.getPixels())
