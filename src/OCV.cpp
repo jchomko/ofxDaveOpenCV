@@ -282,15 +282,15 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         
         diffImage.absDiff(grayBg);
         
-        diffImage.adaptiveThreshold(threshold);
+        diffImage.adaptiveThreshold(240);
         
-        diffImage += frameDiff;
+        //diffImage += frameDiff;
         
-        //diffImage.blur(blur);
+       
         
         //Contour fining
         //frameDiff.threshold(threshold);
-        frameDiff.adaptiveThreshold(threshold);
+        frameDiff.adaptiveThreshold(240);
 
         //Frame diff Contour Finder
         contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
@@ -302,7 +302,13 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 
         diffImage += frameDiff;
 
-        diffImage.threshold(blur);
+        diffImage.threshold(threshold);
+
+
+        diffImage.blur(blur);
+
+
+        diffImage.invert();
 
         //        int c = 0;
         
