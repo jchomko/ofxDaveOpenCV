@@ -11,6 +11,7 @@
 #include "coordWarping.h"
 #include "guiQuad.h"
 #include "ofxXmlSettings.h"
+#include "ofxKinect.h"
 //#include "ofxMacamPs3Eye.h"
 
 //#define DEBUG
@@ -101,7 +102,10 @@ private:
 #else
     //ofxMacamPs3Eye          vidGrabber;
     ofVideoGrabber          vidGrabber;
+    ofxKinect               kinect;
 #endif
+
+
     
     ofxCvColorImage			colorImg;
     ofxCvGrayscaleImage 	grayImage;

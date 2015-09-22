@@ -14,7 +14,7 @@ void CV::setup( int width,int height, int framerate)
     _height = height;
     
     canDoCalibration = false;
-    
+
     blobPaths.resize(10);
     // Grabber initiallization
    
@@ -26,6 +26,9 @@ void CV::setup( int width,int height, int framerate)
     vidGrabber.setDeviceID(0);
     vidGrabber.setDesiredFrameRate(framerate);
     vidGrabber.initGrabber(width,height);
+
+    kinect.setRegistration(true);
+    kinect.init();
     //vidGrabber.setFlicker(0); /* 0 - no flicker, 1 - 50hz, 2 - 60hz */
 #endif
 
@@ -106,6 +109,8 @@ void CV::setTrackingBoundaries(int x, int y, int w, int h)
 void CV::releaseCamera()
 {
     vidGrabber.close();
+
+    kinect.close();
 }
 //--------------------------------------------------------------
 void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,bool erode,bool dilate)
@@ -238,6 +243,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
+    kinect.update();
     vidGrabber.update();
     bNewFrame = vidGrabber.isFrameNew();
 #endif
@@ -248,9 +254,11 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 #ifdef DEBUG
         colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
 #else
-        colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
+        grayImg.setFromPixels(kinect.getPixels(),kinect.with, kinect.height);
+
+        //colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
 #endif
-        colorImg.mirror(mirrorV, mirrorH);
+        //colorImg.mirror(mirrorV, mirrorH);
         //colorImg.invert();
     
         /* We get back the warped coordinates - scaled to our camera size
