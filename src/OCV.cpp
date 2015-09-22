@@ -14,6 +14,7 @@ void CV::setup( int width,int height, int framerate)
     _height = height;
     
     canDoCalibration = false;
+    
     blobPaths.resize(10);
     // Grabber initiallization
    
