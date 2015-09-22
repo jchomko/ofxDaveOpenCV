@@ -254,7 +254,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 #ifdef DEBUG
         colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
 #else
-        grayImg.setFromPixels(kinect.getPixels(),kinect.width, kinect.height);
+
+        grayImage.setFromPixels(kinect.getPixels(),kinect.with, kinect.height);
 
         //colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
 #endif

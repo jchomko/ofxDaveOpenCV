@@ -12,6 +12,7 @@
 #include "guiQuad.h"
 #include "ofxXmlSettings.h"
 #include "ofxKinect.h"
+
 //#include "ofxMacamPs3Eye.h"
 
 //#define DEBUG
