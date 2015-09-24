@@ -29,6 +29,8 @@ void CV::setup( int width,int height, int framerate)
 
     kinect.setRegistration(true);
     kinect.init();
+    kinect.open();
+    kinect.setDepthClipping(0,100000);
     //vidGrabber.setFlicker(0); /* 0 - no flicker, 1 - 50hz, 2 - 60hz */
 #endif
 
@@ -55,6 +57,7 @@ void CV::setup( int width,int height, int framerate)
     cout << "Allocating Thresh Image" << endl;
     virginGray.allocate(width,height);
     cout << "Allocating VirginGray Image" << endl;
+    kinectGray.allocate(width*2,height*2);
 
     outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
     outpix = new unsigned char[width*height*4];
@@ -110,7 +113,7 @@ void CV::releaseCamera()
 {
     vidGrabber.close();
 
-    kinect.close();
+    //kinect.close();
 }
 //--------------------------------------------------------------
 void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,bool erode,bool dilate)
@@ -136,7 +139,7 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
 #endif
     
         colorImg.mirror(mirrorV, mirrorH);
-        grayImage = colorImg;
+//        grayImage = colorImg;
     
         if (useProgressiveLearn == true)
         {
@@ -243,9 +246,10 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
-    kinect.update();
-    vidGrabber.update();
-    bNewFrame = vidGrabber.isFrameNew();
+   //kinect.update();
+   vidGrabber.update();
+   bNewFrame = vidGrabber.isFrameNew();
+   //bNewFrame = kinect.isFrameNew();
 #endif
     
     if (bNewFrame)
@@ -254,10 +258,21 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 #ifdef DEBUG
         colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
 #else
+//	kinectGray.resize(colorImg.width*2, colorImg.height*2);
 
-        grayImage.setFromPixels(kinect.getPixels(),kinect.with, kinect.height);
+//	kinectGray.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);
 
-        //colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
+//	kinectGray.resize(colorImg.width, colorImg.height);	
+
+//colorImg = grayImg;
+	//colorImg.resize(grayImage.width*2, grayImage.height*2);
+        
+	//colorImg.setFromPixels(kinect.getPixels(), kinect.width, kinect.height);
+	
+	//colorImg.resize(grayImage.width, grayImage.height);
+
+	//kinectGray = colorImg;
+        colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
 #endif
         //colorImg.mirror(mirrorV, mirrorH);
         //colorImg.invert();
@@ -277,8 +292,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //frameDiff = colorImg;
         grayImage.brightnessContrast(brightness, contrast);
 
-	    frameDiff = grayImage;	
-        diffImage = grayImage;	
+	frameDiff = grayImage;	
+        
+	diffImage = grayImage;	
 
         //frameDiff.brightnessContrast(brightness, contrast);
         
@@ -295,9 +311,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         
         //diffImage = colorImg;
         
-        //diffImage.absDiff(grayBg);
+        diffImage.absDiff(grayBg);
        
-        //diffImage += frameDiff;
+        diffImage += frameDiff;
         
        
         
@@ -315,16 +331,16 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //diffImage -= grayBg;
         //diffImage.invert();
         
-        //diffImage.threshold(threshold);
+        diffImage.threshold(threshold);
 
-        diffImage = frameDiff;
+        //diffImage = frameDiff;
 
-        diffImage.blur(blur);
+        //diffImage.blur(blur);
 
-        diffImage.adaptiveThreshold(threshold);
+        //diffImage.adaptiveThreshold(threshold);
         
         //diffImage.adaptiveThreshold(blur);
-        diffImage.blur(blur);
+       // diffImage.blur(blur);
 
 
         diffImage.invert();
@@ -373,9 +389,13 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
     //On Exit
     //this just checks if there's movement, and the presenceFinder contourFinder
     // decides if there's a person there
-    //this needs to be more robust - so that it's not timer based, but knows when people are offscreen
     
-    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer >  2000 )
+    //this needs to be more robust - so that it's not timer based, but knows when people are offscreen
+    //upping the delay to 1 minute - 
+    // as recording is motion based, we want to be pretty sure nothing's been in the frame, and that nothing
+    //sticks to the frame while people are playing
+
+    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer >  30000 )
     {
         if(pastImages.size() > 0)
         {
