@@ -251,106 +251,76 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
    bNewFrame = vidGrabber.isFrameNew();
    //bNewFrame = kinect.isFrameNew();
 #endif
-    
+
     if (bNewFrame)
     {
-        
-#ifdef DEBUG
-        colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
-#else
-//	kinectGray.resize(colorImg.width*2, colorImg.height*2);
 
-//	kinectGray.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);
+	#ifdef DEBUG
+        	colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
+	#else
+	//	kinectGray.resize(colorImg.width*2, colorImg.height*2);
 
-//	kinectGray.resize(colorImg.width, colorImg.height);	
+	//	kinectGray.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);
 
-//colorImg = grayImg;
-	//colorImg.resize(grayImage.width*2, grayImage.height*2);
-        
-	//colorImg.setFromPixels(kinect.getPixels(), kinect.width, kinect.height);
-	
-	//colorImg.resize(grayImage.width, grayImage.height);
+	//	kinectGray.resize(colorImg.width, colorImg.height);
 
-	//kinectGray = colorImg;
-        colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
-#endif
+        	colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
+	#endif
         //colorImg.mirror(mirrorV, mirrorH);
         //colorImg.invert();
-    
+
+	//Warping
         /* We get back the warped coordinates - scaled to our camera size
 		ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
-        
 		// Lets warp with those cool coordinates!!!!!
 		grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
-		
 		// Lets calculate the openCV matrix for our coordWarping
 		coordWarp.calculateMatrix(warpedPts, dstPts);
         */
-        //virginGray = colorImg;
+
         grayImage = colorImg;
-
-        //frameDiff = colorImg;
         grayImage.brightnessContrast(brightness, contrast);
+	frameDiff = grayImage;
+	diffImage = grayImage;
 
-	frameDiff = grayImage;	
-        
-	diffImage = grayImage;	
-
-        //frameDiff.brightnessContrast(brightness, contrast);
-        
         //FrameDiff
         frameDiff.absDiff(lastFrame);
         frameDiff.threshold(threshold);
 
          //Frame diff Contour Finder
         contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
-        
 
         //Background sub for static background
         //grayImage.absDiff(backImage);
-        
-        //diffImage = colorImg;
-        
         diffImage.absDiff(grayBg);
-       
         diffImage += frameDiff;
-        
-       
-        
+
         //Contour fining
         //frameDiff.threshold(threshold);
         //frameDiff.adaptiveThreshold(240);
 
-       
         //unsigned char * diffpix = grayImage.getPixels();
-        
         //unsigned char * threshpix = diffImage.getPixels();
-        
+
         //Image creation
-       // diffImage = grayBg;
+        //diffImage = grayBg;
         //diffImage -= grayBg;
         //diffImage.invert();
-        
+
         diffImage.threshold(threshold);
 
         //diffImage = frameDiff;
-
         //diffImage.blur(blur);
-
         //diffImage.adaptiveThreshold(threshold);
-        
         //diffImage.adaptiveThreshold(blur);
        // diffImage.blur(blur);
 
-
         diffImage.invert();
-        
+
+	//Masking - not currently used
         //diffImage.dilate();
-
         //diffImage.invert();
-
         //        int c = 0;
-        
         // for (int i = 0; i < _width*_height*4; i ++)
         // {
         //     if( threshpix[i] > threshold)
@@ -362,13 +332,12 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //         outpix[i] = 255;
         //     }
         // }
-        
         // virginGray = diffImage;
         //lastFrame = colorImg;
-	    //lastFrame.brightnessContrast(brightness, contrast);
+	//lastFrame.brightnessContrast(brightness, contrast);
         //outputImage = diffImage;
-        outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
 
+        outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
 
         lastFrame = colorImg;
         pastImages.push_back(lastFrame);
@@ -378,18 +347,16 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         //pix.setFromPixels(outputImage.getPixels(), 320, 240, 4);
         //pix.setFromPixels(outpix, 320, 240, 4);
     }
-    
+
     //For better bacgkround subtraction I'm saving past images and using them to subtract
-    
     if(pastImages.size() > 50)
     {
         pastImages.erase(pastImages.begin());
     }
-    
+
     //On Exit
     //this just checks if there's movement, and the presenceFinder contourFinder
     // decides if there's a person there
-    
     //this needs to be more robust - so that it's not timer based, but knows when people are offscreen
     //upping the delay to 1 minute - 
     // as recording is motion based, we want to be pretty sure nothing's been in the frame, and that nothing
@@ -401,19 +368,19 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         {
             grayBg = pastImages[0];
         }
-    
-        present = false;
+        //present = false;
     }
-    
-    
-    
+
+    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 2000){
+	present = false;
+    }
+
     if(contourFinder.nBlobs > 0)
     {
         backgroundTimer = ofGetElapsedTimeMillis();
         //While Present
         present = true;
         absenceTimer = ofGetElapsedTimeMillis() + 5000;
- 
     }
 
 }
