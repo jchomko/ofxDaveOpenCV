@@ -78,7 +78,7 @@ void CV::setup( int width,int height, int framerate)
     ofClear(0);
     recordFbo.end();
 
-    //learnBackground = true;
+    learnBackground = true;
     startLearn = true;
     
     _offsetX = 0;
@@ -246,7 +246,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
-   //kinect.update();
+   kinect.update();
    vidGrabber.update();
    bNewFrame = vidGrabber.isFrameNew();
    //bNewFrame = kinect.isFrameNew();
@@ -258,11 +258,11 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 	#ifdef DEBUG
         	colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
 	#else
-	//	kinectGray.resize(colorImg.width*2, colorImg.height*2);
+//		kinectGray.resize(colorImg.width*2, colorImg.height*2);
 
-	//	kinectGray.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);
+//		kinectGray.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);
 
-	//	kinectGray.resize(colorImg.width, colorImg.height);
+//		kinectGray.resize(colorImg.width, colorImg.height);
 
         	colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
 	#endif
@@ -279,7 +279,10 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         */
 
         grayImage = colorImg;
-        grayImage.brightnessContrast(brightness, contrast);
+//	grayImage = kinectGray;
+
+//	grayImage.contrastStretch();  
+    	//grayImage.brightnessContrast(brightness, contrast);
 	frameDiff = grayImage;
 	diffImage = grayImage;
 
@@ -287,60 +290,81 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         frameDiff.absDiff(lastFrame);
         frameDiff.threshold(threshold);
 
-         //Frame diff Contour Finder
+        //Frame diff Contour Finder
         contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
 
         //Background sub for static background
-        //grayImage.absDiff(backImage);
-        diffImage.absDiff(grayBg);
-        diffImage += frameDiff;
+
+	diffImage.absDiff(grayBg);
+	
+//	diffImage.dilate_3x3();
+//	diffImage.contrastStretch();
+//        diffImage.threshold(threshold);
+
+//	diffImage += frameDiff;
+
+	diffImage.blur(blur);
+
+	diffImage.brightnessContrast(brightness,contrast);
+
+	//diffImage.dilate();
+	//diffImage.blur(blur);
 
         //Contour fining
         //frameDiff.threshold(threshold);
         //frameDiff.adaptiveThreshold(240);
+	diffImage.invert();
 
-        //unsigned char * diffpix = grayImage.getPixels();
-        //unsigned char * threshpix = diffImage.getPixels();
+
+  //      unsigned char * origPix = grayImage.getPixels();
+  //      unsigned char * threshpix = diffImage.getPixels();
 
         //Image creation
         //diffImage = grayBg;
         //diffImage -= grayBg;
         //diffImage.invert();
 
-        diffImage.threshold(threshold);
+        //diffImage.threshold(threshold);
 
         //diffImage = frameDiff;
         //diffImage.blur(blur);
         //diffImage.adaptiveThreshold(threshold);
         //diffImage.adaptiveThreshold(blur);
-       // diffImage.blur(blur);
+        // diffImage.blur(blur);
 
-        diffImage.invert();
+        //diffImage.invert();
 
 	//Masking - not currently used
         //diffImage.dilate();
         //diffImage.invert();
-        //        int c = 0;
-        // for (int i = 0; i < _width*_height*4; i ++)
-        // {
-        //     if( threshpix[i] > threshold)
-        //     { // used to be 6
-        //         outpix[i] = ofClamp(diffpix[i]/5, 0, 255);
-        //     }
-        //     else
-        //     {
-        //         outpix[i] = 255;
-        //     }
-        // }
+        //       int c = 0;
+
+//        for (int i = 0; i < _width*_height; i ++){
+//            if( threshpix[i] > 6) //threshold
+ //     		{
+  //               outpix[i] = ofClamp(origPix[i]/5, 0, 255);
+ //            }
+ //            else
+ //            {
+//                 outpix[i] = 255;
+ //            }
+ //        }
+
         // virginGray = diffImage;
-        //lastFrame = colorImg;
-	//lastFrame.brightnessContrast(brightness, contrast);
-        //outputImage = diffImage;
-
-        outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
-
         lastFrame = colorImg;
-        pastImages.push_back(lastFrame);
+	//lastFrame = kinectGray;
+	//lastFrame.brightnessContrast(brightness, contrast);
+       	//outputImage = diffImage;
+	//outputImage.setFromPixels(outpix, diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
+	//diffImage.dilate();
+//	diffImage.blur(blur);
+	//diffImage.dilate();
+//        diffImage.brightnessContrast(brightness, contrast);
+
+	outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
+
+        //lastFrame = colorImg;
+        //pastImages.push_back(lastFrame);
 
         //outputImage.setFromPixels(diffImage.getPixels())
         //outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
@@ -349,10 +373,10 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
     }
 
     //For better bacgkround subtraction I'm saving past images and using them to subtract
-    if(pastImages.size() > 50)
-    {
-        pastImages.erase(pastImages.begin());
-    }
+   // if(pastImages.size() > 50)
+   // {
+   //     pastImages.erase(pastImages.begin());
+   // }
 
     //On Exit
     //this just checks if there's movement, and the presenceFinder contourFinder
@@ -362,16 +386,28 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
     // as recording is motion based, we want to be pretty sure nothing's been in the frame, and that nothing
     //sticks to the frame while people are playing
 
-    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer >  30000 )
+    if(contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  10000) ) // | bLearnBackground )
     {
-        if(pastImages.size() > 0)
+	lastFrame = colorImg;
+	//lastFrame = kinectGray;
+	pastImages.push_back(lastFrame);
+
+	//Maybe do an average of all 50 images? and then lighten / darken ?
+	if(pastImages.size() > 50){
+        	pastImages.erase(pastImages.begin());
+   	 }
+
+	if(pastImages.size() > 0)
         {
             grayBg = pastImages[0];
+	    grayBg.brightnessContrast(-0.5,0);
+	    grayBg.blur(blur);
         }
+	bLearnBackground = false;
         //present = false;
     }
 
-    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 2000){
+    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1300){
 	present = false;
     }
 
@@ -484,7 +520,7 @@ void CV::relearnBackground()
     startLearn = true;
     if (startLearn == true)
     {
-        grayBg = grayWarped;
+//        grayBg = grayWarped;
         startLearn = false;
     }
 }
@@ -626,17 +662,17 @@ void CV::draw()
 	
     ofFill();
     ofDrawBitmapStringHighlight("Color Img",0+5,15);
-	grayImage.draw(_width/2,0,_width/2,_height/2);  // Gray Warped
-    ofDrawBitmapStringHighlight("Gray Img",_width/2+5,15);
-	grayBg.draw(0,120,_width/2,_height/2);
+	grayImage.draw(_width/4,0,_width/4,_height/4);  // Gray Warped
+    ofDrawBitmapStringHighlight("Gray Img",_width/4+5,15);
+	grayBg.draw(0,120,_width/4,_height/4);
     ofDrawBitmapStringHighlight("BG Img",5,135);
-	frameDiff.draw(_width/2,120,_width/2,_height/2);
+	frameDiff.draw(_width/4,120,_width/4,_height/4);
     //grayDiff.draw(_width/2,120,_width/2,_height/2);
-    ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
+    ofDrawBitmapStringHighlight("Diff Img",_width/4+5,135);
     recordFbo.draw(0,_height,_width,_height);
     ofDrawBitmapStringHighlight("Buffer Img",5,255);
 
-    diffImage.draw(240,0,_width/2,_height/2);
+    diffImage.draw(240,0,_width/4,_height/4);
     drawTracking();
     ofDrawBitmapStringHighlight("Contour Finder Img",_width+5,15);
     ofPopMatrix();

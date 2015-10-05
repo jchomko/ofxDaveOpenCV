@@ -115,7 +115,7 @@ private:
     ofxCvFloatImage         grayFloatBg; // for the progressive learning
     ofxCvGrayscaleImage     grayWarped;
     ofxCvGrayscaleImage     grayPostWarp;
-    ofxCvGrayscaleImage     kinectGray;
+    ofxCvShortImage     kinectGray;
 
     ofxCvContourFinder      contourFinder;
     
