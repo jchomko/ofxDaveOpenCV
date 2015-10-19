@@ -24,9 +24,11 @@ void CV::setup( int width,int height, int framerate)
     debugVideo.loadMovie("Debug/IRCapture.mp4");
     debugVideo.play();
 #else
-    gui.setup("panel","camera_settings.xml",0,0);
+    gui.setup("panel","/root/of_v0.8.3_linux64_release/apps/myApps/ShadowingApp/bin/data/camera_settings.xml",0,0);
     settings.setup("/dev/video0");
+
     gui.add(settings.parameters);
+    gui.loadFromFile("/root/of_v0.8.3_linux64_release/apps/myApps/ShadowingApp/bin/data/camera_settings.xml");
     showGui = false;
 
     vidGrabber.listDevices();
@@ -292,7 +294,6 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 
 //	grayImage.contrastStretch();  
     	//grayImage.brightnessContrast(brightness, contrast);
-	frameDiff.resize(_width, _height);
 
 	frameDiff = grayImage;
 	diffImage = grayImage;
@@ -306,6 +307,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
 
         //Background sub for static background
+	grayBg.blur(blur);
 
 	diffImage.absDiff(grayBg);
 	
@@ -313,10 +315,12 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 //	diffImage.contrastStretch();
 //        diffImage.threshold(threshold);
 
-//	diffImage += frameDiff;
+	frameDiff.resize(_width, _height);
+
+	diffImage += frameDiff;
 
 	diffImage.blur(blur);
-
+	
 	diffImage.brightnessContrast(brightness,contrast);
 
 	//diffImage.dilate();
@@ -762,3 +766,9 @@ vector<ofVec3f> CV::getBlobsCentroid()
     return centroids;
 }
 */
+
+
+void CV::exit()
+{
+	gui.saveToFile("camera_settings.xml");
+}

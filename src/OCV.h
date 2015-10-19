@@ -55,6 +55,7 @@ public:
     void getAllPaths();
     void toggleGui();
     void drawGui();
+    void exit();
 
     // Getters
     ofPixels getRecordPixels();
