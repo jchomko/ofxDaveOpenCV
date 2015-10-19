@@ -1,8 +1,8 @@
 //--------------------------------------------------------------
-//* Name: OCV.h
-//* Project: Playable City 2014 Award
-//* Author: David Haylock
-//* Creation Date: 28-07-2014
+// Name: OCV.h
+// Project: Playable City 2014 Award
+// Author: David Haylock
+// Creation Date: 28-07-2014
 //--------------------------------------------------------------
 
 #include <iostream>
@@ -12,6 +12,8 @@
 #include "guiQuad.h"
 #include "ofxXmlSettings.h"
 #include "ofxKinect.h"
+#include "ofxV4L2Settings.h"
+#include "ofxGui.h"
 
 //#include "ofxMacamPs3Eye.h"
 
@@ -51,8 +53,9 @@ public:
     void drawCalibration();
     void drawTracking();
     void getAllPaths();
-    
-    
+    void toggleGui();
+    void drawGui();
+
     // Getters
     ofPixels getRecordPixels();
     int getNumberOfBlobs();
@@ -81,7 +84,7 @@ public:
     void mouseDragged(int x, int y, int button);
     void mousePressed(int x, int y, int button);
     void mouseReleased(int x, int y, int button);
-    
+        
 private:
     
     ofxXmlSettings XML;
@@ -105,9 +108,11 @@ private:
     ofVideoGrabber          vidGrabber;
     ofxKinect               kinect;
 #endif
+	//Settings
+    ofxV4L2Settings settings;
+    ofxPanel gui;
+    bool	showGui;
 
-
-    
     ofxCvColorImage			colorImg;
     ofxCvGrayscaleImage 	grayImage;
     ofxCvGrayscaleImage 	grayBg;

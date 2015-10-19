@@ -1,12 +1,13 @@
 //--------------------------------------------------------------
-//* Name: OCV.cpp
-//* Project: Playable City 2014 Award
-//* Author: David Haylock
-//* Creation Date: 28-07-2014
+// Name: OCV.cpp
+// Project: Playable City 2014 Award
+// Author: David Haylock
+// Creation Date: 28-07-2014
 //--------------------------------------------------------------
 
 #include "OCV.h"
 //--------------------------------------------------------------
+
 void CV::setup( int width,int height, int framerate)
 {
     // Variables Over
@@ -19,19 +20,26 @@ void CV::setup( int width,int height, int framerate)
     // Grabber initiallization
    
 #ifdef DEBUG
+
     debugVideo.loadMovie("Debug/IRCapture.mp4");
     debugVideo.play();
 #else
+    gui.setup("panel","camera_settings.xml",0,0);
+    settings.setup("/dev/video0");
+    gui.add(settings.parameters);
+    showGui = false;
+
     vidGrabber.listDevices();
     vidGrabber.setDeviceID(0);
     vidGrabber.setDesiredFrameRate(framerate);
     vidGrabber.initGrabber(width,height);
-
-    kinect.setRegistration(true);
-    kinect.init();
-    kinect.open();
-    kinect.setDepthClipping(0,100000);
+    vidGrabber.videoSettings();
+   // kinect.setRegistration(true);
+   // kinect.init();
+   // kinect.open();
+   // kinect.setDepthClipping(0,100000);
     //vidGrabber.setFlicker(0); /* 0 - no flicker, 1 - 50hz, 2 - 60hz */
+
 #endif
 
     //Allocate the Memory for the CV processes
@@ -99,6 +107,7 @@ void CV::setup( int width,int height, int framerate)
     cvWarpQuad.setup("Masker-Quad");
     cvWarpQuad.setQuadPoints(srcPts);
     cvWarpQuad.readFromFile("quad-settings.xml");
+
     
 }
 //--------------------------------------------------------------
@@ -246,7 +255,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
-   kinect.update();
+ //  kinect.update();
    vidGrabber.update();
    bNewFrame = vidGrabber.isFrameNew();
    //bNewFrame = kinect.isFrameNew();
@@ -283,6 +292,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 
 //	grayImage.contrastStretch();  
     	//grayImage.brightnessContrast(brightness, contrast);
+	frameDiff.resize(_width, _height);
+
 	frameDiff = grayImage;
 	diffImage = grayImage;
 
@@ -290,6 +301,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
         frameDiff.absDiff(lastFrame);
         frameDiff.threshold(threshold);
 
+	frameDiff.resize(_width/2, _width/2);
         //Frame diff Contour Finder
         contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
 
@@ -523,6 +535,18 @@ void CV::relearnBackground()
 //        grayBg = grayWarped;
         startLearn = false;
     }
+}
+//------------------------------------------------------------
+void CV::toggleGui()
+{
+	showGui = !showGui;
+}
+//-------------------------------------------------------------
+void CV::drawGui()
+{
+	 if(showGui){
+		gui.draw();
+	}
 }
 //--------------------------------------------------------------
 void CV::drawLiveShadow()
