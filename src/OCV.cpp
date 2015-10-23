@@ -257,10 +257,10 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 
    	 if (bNewFrame)
    	 {
-		colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
-		grayImage = colorImg;
+		    colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
+		    grayImage = colorImg;
 
-		frameDiff = grayImage;
+		    frameDiff = grayImage;
         	diffImage = grayImage;
 
         	//FrameDiff
@@ -276,9 +276,9 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 
         	diffImage.absDiff(grayBg);
 
-		//diffImage.dilate_3x3();
-		//diffImage.contrastStretch();
-		//diffImage.threshold(threshold);
+		    //diffImage.dilate_3x3();
+		    //diffImage.contrastStretch();
+		    //diffImage.threshold(threshold);
 
         	frameDiff.resize(_width, _height);
 
@@ -286,7 +286,9 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 
         	diffImage.blur(blur);
 
-		diffImage.invert();
+            diffImage.brightnessContrast(brightness,contrast);
+
+		    diffImage.invert();
 
 	       	lastFrame = colorImg;
 	       	outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
@@ -308,7 +310,7 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 				grayFloatBg.addWeighted(pastImages[0], 0.1);
             			grayBg = grayFloatBg;
             			//grayBg = pastImages[0];
-            			grayBg.brightnessContrast(-0.5,0);
+            			//grayBg.brightnessContrast(-0.5,0);
             			grayBg.blur(blur);
         		}
         		//bLearnBackground = false;
