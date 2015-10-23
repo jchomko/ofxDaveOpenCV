@@ -11,7 +11,7 @@
 #include "coordWarping.h"
 #include "guiQuad.h"
 #include "ofxXmlSettings.h"
-#include "ofxKinect.h"
+//#include "ofxKinect.h"
 #include "ofxV4L2Settings.h"
 #include "ofxGui.h"
 
@@ -43,7 +43,7 @@ public:
     void subtractionLoop(bool bLearnBackground, bool useProgressiveLearn,float progressionRate,bool mirrorH,bool mirrorV,int threshold,int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,bool erode,bool dilate);
     
     // John's Loop
-    void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast);
+    void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold,int moveThreshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast, bool erode, bool dilate);
 
 	//ProgSubLoop
 	void progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur, float brightness, float contrast);
@@ -109,7 +109,7 @@ private:
 #else
     //ofxMacamPs3Eye          vidGrabber;
     ofVideoGrabber          vidGrabber;
-    ofxKinect               kinect;
+    //ofxKinect               kinect;
 #endif
 	//Settings
     ofxV4L2Settings settings;

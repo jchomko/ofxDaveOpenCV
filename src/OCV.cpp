@@ -33,9 +33,10 @@ void CV::setup( int width,int height, int framerate)
 
     vidGrabber.listDevices();
     vidGrabber.setDeviceID(0);
-    vidGrabber.setDesiredFrameRate(framerate);
-    vidGrabber.initGrabber(width,height);
-    vidGrabber.videoSettings();
+    vidGrabber.setDesiredFrameRate(60);
+    vidGrabber.initGrabber(width*2,height*2);
+
+ //   vidGrabber.videoSettings();
    // kinect.setRegistration(true);
    // kinect.init();
    // kinect.open();
@@ -45,7 +46,8 @@ void CV::setup( int width,int height, int framerate)
 #endif
 
     //Allocate the Memory for the CV processes
-    colorImg.allocate(width,height);
+    colorImg.allocate(width*2,height*2);
+
     cout << "Allocating Color Image" << endl;
 	grayImage.allocate(width,height);
     cout << "Allocating Gray Image" << endl;
@@ -257,8 +259,10 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 
    	 if (bNewFrame)
    	 {
-		    colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
-		    grayImage = colorImg;
+		    colorImg.resize(_width*2, _height*2);
+		    colorImg.setFromPixels(vidGrabber.getPixels(), _width*2,_height*2);
+		    colorImg.resize(_width, _height);
+			grayImage = colorImg;
 
 		    frameDiff = grayImage;
         	diffImage = grayImage;
@@ -336,7 +340,7 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 
 }
 //--------------------------------------------------------------
-void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast)
+void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
 {
  
     bool bNewFrame = false;
@@ -345,10 +349,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
- //  kinect.update();
    vidGrabber.update();
    bNewFrame = vidGrabber.isFrameNew();
-   //bNewFrame = kinect.isFrameNew();
 #endif
 
     if (bNewFrame)
@@ -357,13 +359,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 	#ifdef DEBUG
         	colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
 	#else
-//		kinectGray.resize(colorImg.width*2, colorImg.height*2);
-
-//		kinectGray.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);
-
-//		kinectGray.resize(colorImg.width, colorImg.height);
-
-        	colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
+        	colorImg.resize(_width*2,_height*2);
+		colorImg.setFromPixels(vidGrabber.getPixels(), _width*2,_height*2);
+		colorImg.resize(_width, _height);
 	#endif
         //colorImg.mirror(mirrorV, mirrorH);
         //colorImg.invert();
@@ -376,7 +374,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 		// Lets calculate the openCV matrix for our coordWarping
 		coordWarp.calculateMatrix(warpedPts, dstPts);
         */
-
+	//colorImg.brightnessContrast(brightness, contrast);
         grayImage = colorImg;
 //	grayImage = kinectGray;
 
@@ -388,7 +386,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 
         //FrameDiff
         frameDiff.absDiff(lastFrame);
-        frameDiff.threshold(threshold);
+        frameDiff.threshold(moveThreshold);
 
 	frameDiff.resize(_width/2, _width/2);
         //Frame diff Contour Finder
@@ -398,30 +396,38 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 	grayBg.blur(blur);
 
 	diffImage.absDiff(grayBg);
-	
+//	diffImage.brightnessContrast(brightness,contrast);
+
+
 //	diffImage.dilate_3x3();
 //	diffImage.contrastStretch();
-//        diffImage.threshold(threshold);
+//      diffImage.threshold(threshold);
 
 	frameDiff.resize(_width, _height);
+	frameDiff.dilate_3x3();
 
 	diffImage += frameDiff;
-
 	diffImage.blur(blur);
-	
-	diffImage.brightnessContrast(brightness,contrast);
-
+	//diffImage.contrastStretch();
 	//diffImage.dilate();
 	//diffImage.blur(blur);
 
         //Contour fining
-        //frameDiff.threshold(threshold);
+        diffImage.threshold(imgThreshold);
         //frameDiff.adaptiveThreshold(240);
 	diffImage.invert();
 
+	if (erode)
+        {
+            diffImage.erode();
+        }
+        if (dilate)
+        {
+            diffImage.dilate();
+        }
 
-  //      unsigned char * origPix = grayImage.getPixels();
-  //      unsigned char * threshpix = diffImage.getPixels();
+//      unsigned char * origPix = grayImage.getPixels();
+//      unsigned char * threshpix = diffImage.getPixels();
 
         //Image creation
         //diffImage = grayBg;
@@ -504,7 +510,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int th
 	if(pastImages.size() > 0)
         {
             grayBg = pastImages[0];
-	    grayBg.brightnessContrast(-0.5,0);
+	    //grayBg.brightnessContrast(-0.5,0);
 	    grayBg.blur(blur);
         }
 	bLearnBackground = false;
@@ -778,17 +784,17 @@ void CV::draw()
 	
     ofFill();
     ofDrawBitmapStringHighlight("Color Img",0+5,15);
-	grayImage.draw(_width/4,0,_width/4,_height/4);  // Gray Warped
-    ofDrawBitmapStringHighlight("Gray Img",_width/4+5,15);
-	grayBg.draw(0,120,_width/4,_height/4);
+	grayImage.draw(_width/2,0,_width/4,_height/2);  // Gray Warped
+    ofDrawBitmapStringHighlight("Gray Img",_width/2+5,15);
+	grayBg.draw(0,120,_width/2,_height/2);
     ofDrawBitmapStringHighlight("BG Img",5,135);
-	frameDiff.draw(_width/4,120,_width/4,_height/4);
+	frameDiff.draw(_width/2,120,_width/2,_height/2);
     //grayDiff.draw(_width/2,120,_width/2,_height/2);
-    ofDrawBitmapStringHighlight("Diff Img",_width/4+5,135);
+    ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
     recordFbo.draw(0,_height,_width,_height);
     ofDrawBitmapStringHighlight("Buffer Img",5,255);
 
-    diffImage.draw(240,0,_width/4,_height/4);
+    diffImage.draw(240,0,_width/2,_height/2);
     drawTracking();
     ofDrawBitmapStringHighlight("Contour Finder Img",_width+5,15);
     ofPopMatrix();
