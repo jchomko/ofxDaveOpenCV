@@ -44,7 +44,9 @@ public:
     
     // John's Loop
     void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast);
-    
+
+	//ProgSubLoop
+	void progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur, float brightness, float contrast);
     void readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor);
     void draw();
     void drawLive();

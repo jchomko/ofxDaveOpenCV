@@ -192,6 +192,7 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
     }
     learnBackground = bLearnBackground;
 }
+
 //--------------------------------------------------------------
 void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold,int blur, int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,float brightness, float contrast,bool erode,bool dilate)
 {
@@ -246,6 +247,91 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
         grayDiff.threshold(threshold);
         contourFinder.findContours(grayDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
     }
+}
+
+void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur, float brightness, float contrast)
+{
+	bool bNewFrame = false;
+	vidGrabber.update();
+	bNewFrame = vidGrabber.isFrameNew();
+
+   	 if (bNewFrame)
+   	 {
+		colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
+		grayImage = colorImg;
+
+		frameDiff = grayImage;
+        	diffImage = grayImage;
+
+        	//FrameDiff
+        	frameDiff.absDiff(lastFrame);
+        	frameDiff.threshold(threshold);
+
+        	frameDiff.resize(_width/2, _width/2);
+        	//Frame diff Contour Finder
+        	contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, 4,false,true);
+
+        	//Background sub for static background
+        	grayBg.blur(blur);
+
+        	diffImage.absDiff(grayBg);
+
+		//diffImage.dilate_3x3();
+		//diffImage.contrastStretch();
+		//diffImage.threshold(threshold);
+
+        	frameDiff.resize(_width, _height);
+
+        	//diffImage += frameDiff;
+
+        	diffImage.blur(blur);
+
+		diffImage.invert();
+
+	       	lastFrame = colorImg;
+	       	outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
+
+		//If no-one has been in the light for awhile, start saving the background
+		if(contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  10000) ) // | bLearnBackground )
+    		{
+			lastFrame = colorImg;
+		        pastImages.push_back(lastFrame);
+
+        		//Maybe do an average of all 50 images? and then lighten / darken ?
+        		if(pastImages.size() > 50)
+			{
+                		pastImages.erase(pastImages.begin());
+         		}
+
+        		if(pastImages.size() > 0)
+        		{
+				grayFloatBg.addWeighted(pastImages[0], 0.1);
+            			grayBg = grayFloatBg;
+            			//grayBg = pastImages[0];
+            			grayBg.brightnessContrast(-0.5,0);
+            			grayBg.blur(blur);
+        		}
+        		//bLearnBackground = false;
+        		//present = false;
+    		}
+
+		//If person stops moving in light
+    		if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1300)
+		{
+        		present = false;
+    		}
+
+		//If person enters the light
+    		if(contourFinder.nBlobs > 0)
+    		{
+        		backgroundTimer = ofGetElapsedTimeMillis();
+        		//While Present
+        		present = true;
+        		absenceTimer = ofGetElapsedTimeMillis() + 5000;
+    		}
+
+	}//End of New Frame
+
 }
 //--------------------------------------------------------------
 void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast)
@@ -772,3 +858,4 @@ void CV::exit()
 {
 	gui.saveToFile("camera_settings.xml");
 }
+
