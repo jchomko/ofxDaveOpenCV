@@ -71,6 +71,9 @@ void CV::setup( int width,int height, int framerate)
     cout << "Allocating VirginGray Image" << endl;
     kinectGray.allocate(width*2,height*2);
 
+    invDiffImage.allocate(width,height);
+    cleanFrameDiff.allocate(width,height);
+
     outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
     outpix = new unsigned char[width*height*4];
     
@@ -280,7 +283,7 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 
         	diffImage.absDiff(grayBg);
 
-		    //diffImage.dilate_3x3();
+		//diffImage.dilate_3x3();
 		    //diffImage.contrastStretch();
 		    //diffImage.threshold(threshold);
 
@@ -290,9 +293,9 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 
         	diffImage.blur(blur);
 
-            diffImage.brightnessContrast(brightness,contrast);
+                diffImage.brightnessContrast(brightness,contrast);
 
-		    diffImage.invert();
+		diffImage.invert();
 
 	       	lastFrame = colorImg;
 	       	outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
@@ -340,9 +343,8 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 
 }
 //--------------------------------------------------------------
-void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
+void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur, int gaussBlur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
 {
- 
     bool bNewFrame = false;
 
 #ifdef DEBUG
@@ -375,116 +377,60 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 		coordWarp.calculateMatrix(warpedPts, dstPts);
         */
 	//colorImg.brightnessContrast(brightness, contrast);
+    colorImg.blurGaussian(gaussBlur);
     grayImage = colorImg;
 
-	frameDiff = grayImage;
+    frameDiff = grayImage;
+    diffImage = grayImage;
+    invDiffImage = grayImage;
 
-	diffImage = grayImage;
-
-        //FrameDiff
     frameDiff.absDiff(lastFrame);
+    cleanFrameDiff = frameDiff;
+
     frameDiff.threshold(moveThreshold);
 
-	frameDiff.resize(_width, _width);
-        //Frame diff Contour Finder
     contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum, fillHoles, useApproximation);
 
-    //Background sub for static background
-	
-    //grayBg.blur(blur);
+    diffImage.absDiff(grayBg);
 
-	diffImage.absDiff(grayBg);
+    invDiffImage = diffImage;
 
+    diffImage += cleanFrameDiff;
+
+     //invDiffImage.threshold(255-imgThreshold);
+     //invDiffImage.invert(); 
+     //diffImage.invert();
+
+     //diffImage.threshold(imgThreshold);
+
+   diffImage.brightnessContrast(brightness, contrast);
+   diffImage.blur(blur);
 
     if (erode){
-        diffImage.erode();
+       diffImage.erode();
     }
     if (dilate){
-        diffImage.dilate();
+       diffImage.dilate();
     }
 
-    diffImage.blur(blur);
+    unsigned char * origPix = grayImage.getPixels();
+    unsigned char * threshpix = diffImage.getPixels();
 
-    //diffImage.dilate_3x3();
-    //diffImage.contrastStretch();
-    //diffImage.threshold(threshold);
+        for (int i = 0; i < _width*_height; i ++){
+            if( threshpix[i] > imgThreshold) //threshold
+      		{
+                 outpix[i] = ofClamp(origPix[i]/5, 0, 255);
+            }
+             else
+             {
+                outpix[i] = 255;
+             }
+        }
 
-	//frameDiff.dilate_3x3();
-
-    //diffImage += frameDiff;
-	//diffImage.contrastStretch();
-	//diffImage.dilate();
-	//diffImage.blur(blur);
-
-    //Contour fining
-    diffImage.adaptiveThreshold(imgThreshold,0,true,true);
-    //diffImage.threshold(imgThreshold);
-        //frameDiff.adaptiveThreshold(240);
-	//diffImage.invert();
-
-	
-
-//      unsigned char * origPix = grayImage.getPixels();
-//      unsigned char * threshpix = diffImage.getPixels();
-
-        //Image creation
-        //diffImage = grayBg;
-        //diffImage -= grayBg;
-        //diffImage.invert();
-
-        //diffImage.threshold(threshold);
-
-        //diffImage = frameDiff;
-        //diffImage.blur(blur);
-        //diffImage.adaptiveThreshold(threshold);
-        //diffImage.adaptiveThreshold(blur);
-        // diffImage.blur(blur);
-
-        //diffImage.invert();
-
-	//Masking - not currently used
-        //diffImage.dilate();
-        //diffImage.invert();
-        //       int c = 0;
-
-//        for (int i = 0; i < _width*_height; i ++){
-//            if( threshpix[i] > 6) //threshold
- //     		{
-  //               outpix[i] = ofClamp(origPix[i]/5, 0, 255);
- //            }
- //            else
- //            {
-//                 outpix[i] = 255;
- //            }
- //        }
-
-        // virginGray = diffImage;
         lastFrame = colorImg;
-	//lastFrame = kinectGray;
-	//lastFrame.brightnessContrast(brightness, contrast);
-       	//outputImage = diffImage;
-	//outputImage.setFromPixels(outpix, diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
-	//diffImage.dilate();
-//	diffImage.blur(blur);
-	//diffImage.dilate();
-//        diffImage.brightnessContrast(brightness, contrast);
-
-	outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
-
-        //lastFrame = colorImg;
-        //pastImages.push_back(lastFrame);
-
-        //outputImage.setFromPixels(diffImage.getPixels())
-        //outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
-        //pix.setFromPixels(outputImage.getPixels(), 320, 240, 4);
-        //pix.setFromPixels(outpix, 320, 240, 4);
+//	outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
+        outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
     }
-
-    //For better bacgkround subtraction I'm saving past images and using them to subtract
-   // if(pastImages.size() > 50)
-   // {
-   //     pastImages.erase(pastImages.begin());
-   // }
 
     //On Exit
     //this just checks if there's movement, and the presenceFinder contourFinder
@@ -781,20 +727,25 @@ void CV::draw()
     ofSetColor(255);
 	
     ofFill();
-    ofDrawBitmapStringHighlight("Color Img",0+5,15);
-	grayImage.draw(_width/2,0,_width/4,_height/2);  // Gray Warped
-    ofDrawBitmapStringHighlight("Gray Img",_width/2+5,15);
-	grayBg.draw(0,120,_width/2,_height/2);
-    ofDrawBitmapStringHighlight("BG Img",5,135);
-	frameDiff.draw(_width/2,120,_width/2,_height/2);
+    ofDrawBitmapStringHighlight("Diff Img",0+5,15);
+	diffImage.draw(_width/2,0,_width/2,_height/2);  // Gray Warped
+    
+   //ofDrawBitmapStringHighlight("Gray Img",_width/2+5,15);
+//	diffImage.draw(0,120,_width/2,_height/2);
+    ofDrawBitmapStringHighlight("Frame Diff",5,135);
+    frameDiff.draw(_width/2,120,_width/2,_height/2);
     //grayDiff.draw(_width/2,120,_width/2,_height/2);
-    ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
+    //ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
+    
     recordFbo.draw(0,_height,_width,_height);
     ofDrawBitmapStringHighlight("Buffer Img",5,255);
 
-    diffImage.draw(240,0,_width/2,_height/2);
+
+    diffImage.draw(320,0,_width, _height);
+
+    //diffImage.draw(240,0,_width/2,_height/2);
     drawTracking();
-    ofDrawBitmapStringHighlight("Contour Finder Img",_width+5,15);
+    ofDrawBitmapStringHighlight("contour finder w inv diff",_width+5,15);
     ofPopMatrix();
 }
 //--------------------------------------------------------------
