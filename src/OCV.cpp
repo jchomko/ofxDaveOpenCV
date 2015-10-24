@@ -375,56 +375,54 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 		coordWarp.calculateMatrix(warpedPts, dstPts);
         */
 	//colorImg.brightnessContrast(brightness, contrast);
-        grayImage = colorImg;
-//	grayImage = kinectGray;
-
-//	grayImage.contrastStretch();  
-    	//grayImage.brightnessContrast(brightness, contrast);
+    grayImage = colorImg;
 
 	frameDiff = grayImage;
+
 	diffImage = grayImage;
 
         //FrameDiff
-        frameDiff.absDiff(lastFrame);
-        frameDiff.threshold(moveThreshold);
+    frameDiff.absDiff(lastFrame);
+    frameDiff.threshold(moveThreshold);
 
-	frameDiff.resize(_width/2, _width/2);
+	frameDiff.resize(_width, _width);
         //Frame diff Contour Finder
-        contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
+    contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum, fillHoles, useApproximation);
 
-        //Background sub for static background
-	grayBg.blur(blur);
+    //Background sub for static background
+	
+    //grayBg.blur(blur);
 
 	diffImage.absDiff(grayBg);
-//	diffImage.brightnessContrast(brightness,contrast);
 
 
-//	diffImage.dilate_3x3();
-//	diffImage.contrastStretch();
-//      diffImage.threshold(threshold);
+    if (erode){
+        diffImage.erode();
+    }
+    if (dilate){
+        diffImage.dilate();
+    }
 
-	frameDiff.resize(_width, _height);
-	frameDiff.dilate_3x3();
+    diffImage.blur(blur);
 
-	diffImage += frameDiff;
-	diffImage.blur(blur);
+    //diffImage.dilate_3x3();
+    //diffImage.contrastStretch();
+    //diffImage.threshold(threshold);
+
+	//frameDiff.dilate_3x3();
+
+    //diffImage += frameDiff;
 	//diffImage.contrastStretch();
 	//diffImage.dilate();
 	//diffImage.blur(blur);
 
-        //Contour fining
-        diffImage.threshold(imgThreshold);
+    //Contour fining
+    diffImage.adaptiveThreshold(imgThreshold,0,true,true);
+    //diffImage.threshold(imgThreshold);
         //frameDiff.adaptiveThreshold(240);
-	diffImage.invert();
+	//diffImage.invert();
 
-	if (erode)
-        {
-            diffImage.erode();
-        }
-        if (dilate)
-        {
-            diffImage.dilate();
-        }
+	
 
 //      unsigned char * origPix = grayImage.getPixels();
 //      unsigned char * threshpix = diffImage.getPixels();
@@ -507,18 +505,18 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         	pastImages.erase(pastImages.begin());
    	 }
 
-	if(pastImages.size() > 0)
+	if(pastImages.size() > 0 | bLearnBackground )
         {
             grayBg = pastImages[0];
-	    //grayBg.brightnessContrast(-0.5,0);
-	    grayBg.blur(blur);
+	        //grayBg.brightnessContrast(-0.5,0);
+	        grayBg.blur(blur);
         }
-	bLearnBackground = false;
+	       bLearnBackground = false;
         //present = false;
     }
 
-    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1300){
-	present = false;
+    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 2200){
+	   present = false;
     }
 
     if(contourFinder.nBlobs > 0)
