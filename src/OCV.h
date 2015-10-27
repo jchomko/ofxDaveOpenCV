@@ -43,7 +43,7 @@ public:
     void subtractionLoop(bool bLearnBackground, bool useProgressiveLearn,float progressionRate,bool mirrorH,bool mirrorV,int threshold,int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,bool erode,bool dilate);
     
     // John's Loop
-    void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold,int moveThreshold, int blur, int gaussBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast, bool erode, bool dilate);
+    void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold,int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast, bool erode, bool dilate);
 
 	//ProgSubLoop
 	void progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur, float brightness, float contrast);

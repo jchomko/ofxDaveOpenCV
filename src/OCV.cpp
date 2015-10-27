@@ -195,7 +195,7 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
         grayDiff.threshold(threshold);
         contourFinder.findContours(grayDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
     }
-    learnBackground = bLearnBackground;
+    //learnBackground = bLearnBackground;
 }
 
 //--------------------------------------------------------------
@@ -343,7 +343,7 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 
 }
 //--------------------------------------------------------------
-void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur, int gaussBlur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
+void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
 {
     bool bNewFrame = false;
 
@@ -380,6 +380,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     colorImg.blurGaussian(gaussBlur);
     grayImage = colorImg;
 
+    grayImage.blurMedian(medianBlur);
+
     frameDiff = grayImage;
     diffImage = grayImage;
     invDiffImage = grayImage;
@@ -393,15 +395,15 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
     diffImage.absDiff(grayBg);
 
-    invDiffImage = diffImage;
+    //invDiffImage = diffImage;
 
     diffImage += cleanFrameDiff;
 
-     //invDiffImage.threshold(255-imgThreshold);
-     //invDiffImage.invert(); 
-     //diffImage.invert();
+   //invDiffImage.threshold(255-imgThreshold);
+   //invDiffImage.invert(); 
+   //diffImage.invert();
 
-     //diffImage.threshold(imgThreshold);
+   //diffImage.threshold(imgThreshold);
 
    diffImage.brightnessContrast(brightness, contrast);
    diffImage.blur(blur);
@@ -428,6 +430,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         }
 
         lastFrame = colorImg;
+
+	lastFrame.blurMedian(medianBlur);
+
 //	outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
         outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
     }
@@ -440,7 +445,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     // as recording is motion based, we want to be pretty sure nothing's been in the frame, and that nothing
     //sticks to the frame while people are playing
 
-    if(contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  10000) ) // | bLearnBackground )
+    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer >  10000)  // | bLearnBackground )
     {
 	lastFrame = colorImg;
 	//lastFrame = kinectGray;
@@ -451,17 +456,17 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         	pastImages.erase(pastImages.begin());
    	 }
 
-	if(pastImages.size() > 0 | bLearnBackground )
+	if(pastImages.size() > 0 )
         {
-            grayBg = pastImages[0];
+                grayBg = pastImages[0];
 	        //grayBg.brightnessContrast(-0.5,0);
 	        grayBg.blur(blur);
         }
-	       bLearnBackground = false;
+	learnBackground = false;
         //present = false;
     }
 
-    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 2200){
+    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1800){
 	   present = false;
     }
 
@@ -571,6 +576,7 @@ int CV::getNumberOfBlobs()
 //--------------------------------------------------------------
 void CV::relearnBackground()
 {
+    learnBackground = true;
     startLearn = true;
     if (startLearn == true)
     {
