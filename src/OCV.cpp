@@ -80,12 +80,12 @@ void CV::setup( int width,int height, int framerate)
     for(int i = 0; i <width*height*4;  i++ ){
         outpix[i] = 0;
     }
-    backgroundTimer = 0;
+    backgroundTimer = ofGetElapsedTimeMillis()+2000;
     present = true;
     presenceTimer = 0;
     absenceTimer = 0;
     
-    present = true;
+    present = false;
     pixels = new unsigned char[_width*_height*4];
     
     recordFbo.allocate(width, height,GL_RGBA);
@@ -369,13 +369,13 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         //colorImg.invert();
 
 	//Warping
-        /* We get back the warped coordinates - scaled to our camera size
-		ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
+            // We get back the warped coordinates - scaled to our camera size
+    ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
 		// Lets warp with those cool coordinates!!!!!
-		grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
+    colorImg.warpIntoMe(colorImg, warpedPts, dstPts);
 		// Lets calculate the openCV matrix for our coordWarping
-		coordWarp.calculateMatrix(warpedPts, dstPts);
-        */
+    coordWarp.calculateMatrix(warpedPts, dstPts);
+        
 	//colorImg.brightnessContrast(brightness, contrast);
     colorImg.blurGaussian(gaussBlur);
     grayImage = colorImg;
@@ -466,7 +466,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         //present = false;
     }
 
-    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1800){
+    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
 	   present = false;
     }
 
