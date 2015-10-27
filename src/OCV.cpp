@@ -80,7 +80,7 @@ void CV::setup( int width,int height, int framerate)
     for(int i = 0; i <width*height*4;  i++ ){
         outpix[i] = 0;
     }
-    backgroundTimer = ofGetElapsedTimeMillis()+2000;
+    backgroundTimer = 0;
     present = true;
     presenceTimer = 0;
     absenceTimer = 0;
@@ -301,7 +301,7 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 	       	outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
 
 		//If no-one has been in the light for awhile, start saving the background
-		if(contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  10000) ) // | bLearnBackground )
+		if((contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  10000)) |  ofGetFrameNum() < 30 ) // | bLearnBackground )
     		{
 			lastFrame = colorImg;
 		        pastImages.push_back(lastFrame);
@@ -370,15 +370,20 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
 	//Warping
             // We get back the warped coordinates - scaled to our camera size
-    ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
+    //ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
 		// Lets warp with those cool coordinates!!!!!
-    colorImg.warpIntoMe(colorImg, warpedPts, dstPts);
+    //colorImg.warpIntoMe(colorImg, warpedPts, dstPts);
 		// Lets calculate the openCV matrix for our coordWarping
-    coordWarp.calculateMatrix(warpedPts, dstPts);
+    //coordWarp.calculateMatrix(warpedPts, dstPts);
         
 	//colorImg.brightnessContrast(brightness, contrast);
     colorImg.blurGaussian(gaussBlur);
     grayImage = colorImg;
+
+//    gray_mat = grayImage.getCvImage();
+//    cv::Rect crop_roi = cv::Rect(_offsetX,_offsetY, _width - _offsetX, _height -_offsetY);
+//    crop = gray_mat(crop_roi).clone();
+//    grayImage = crop;
 
     grayImage.blurMedian(medianBlur);
 
@@ -445,8 +450,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     // as recording is motion based, we want to be pretty sure nothing's been in the frame, and that nothing
     //sticks to the frame while people are playing
 
-    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer >  10000)  // | bLearnBackground )
-    {
+   // if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer >  10000)  // | bLearnBackground )
+   if((contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  10000)) |  ofGetFrameNum() < 100 ) 
+   {
 	lastFrame = colorImg;
 	//lastFrame = kinectGray;
 	pastImages.push_back(lastFrame);

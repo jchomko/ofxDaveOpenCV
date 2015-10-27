@@ -137,7 +137,10 @@ private:
     ofxCvGrayscaleImage	    cleanFrameDiff;
     vector<ofxCvGrayscaleImage> pastImages;
     ofImage             outputImage;
-    
+
+//    cv::Mat gray_mat;
+//    cv::Mat crop;
+
     ofTexture           outputTex;
     bool learnBackground;
     bool startLearn;
