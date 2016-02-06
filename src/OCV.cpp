@@ -109,7 +109,7 @@ void CV::setup( int width,int height, int framerate)
 #endif
 
     //Allocate the Memory for the CV processes
-    colorImg.allocate(width*2,height*2);
+   // colorImg.allocate(width*2,height*2);
 
     cout << "Allocating Color Image" << endl;
 	grayImage.allocate(width,height);
@@ -132,7 +132,7 @@ void CV::setup( int width,int height, int framerate)
     cout << "Allocating Thresh Image" << endl;
     virginGray.allocate(width,height);
     cout << "Allocating VirginGray Image" << endl;
-    kinectGray.allocate(width*2,height*2);
+//    kinectGray.allocate(width*2,height*2);
 
     invDiffImage.allocate(width,height);
     cleanFrameDiff.allocate(width,height);
@@ -455,8 +455,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 		//colorImg.resize(_width, _height);
         grayImage.resize(808,608);
         grayImage.setFromPixels(rawImage.GetData(), 808, 608);
-        colorImg.resize(_width, _height);
-        
+        grayImage.resize(_width, _height);
+        virginGray = grayImage;
+
 	#endif
         //colorImg.mirror(mirrorV, mirrorH);
         //colorImg.invert();
@@ -485,6 +486,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     invDiffImage = grayImage;
 
     frameDiff.absDiff(lastFrame);
+
     cleanFrameDiff = frameDiff;
 
     frameDiff.threshold(moveThreshold);
@@ -527,7 +529,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
              }
         }
 
-        lastFrame = colorImg;
+        lastFrame = virginGray;
 
 	lastFrame.blurMedian(medianBlur);
 
@@ -544,9 +546,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     //sticks to the frame while people are playing
 
    // if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer >  10000)  // | bLearnBackground )
-   if((contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  10000)) |  ofGetFrameNum() < 100 ) 
+   if((contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  5000)) |  ofGetFrameNum() < 100 ) 
    {
-	lastFrame = colorImg;
+	lastFrame = virginGray;
 	//lastFrame = kinectGray;
 	pastImages.push_back(lastFrame);
 
@@ -835,13 +837,15 @@ void CV::draw()
     ofDrawBitmapStringHighlight("Diff Img",0+5,15);
 	diffImage.draw(_width/2,0,_width/2,_height/2);  // Gray Warped
     
-   //ofDrawBitmapStringHighlight("Gray Img",_width/2+5,15);
-//	diffImage.draw(0,120,_width/2,_height/2);
-    ofDrawBitmapStringHighlight("Frame Diff",5,135);
-    frameDiff.draw(_width/2,120,_width/2,_height/2);
+   ofDrawBitmapStringHighlight("Gray Bg",_width/2+5,15);
+	grayBg.draw(0,120,_width/2,_height/2);
+   
+	 ofDrawBitmapStringHighlight("Virgin Gray",5,135);
+   	virginGray.draw(_width/2,120,_width/2,_height/2);
     //grayDiff.draw(_width/2,120,_width/2,_height/2);
-    //ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
-    
+  // /ofDrawBitmapStringHighlight("Virgin Gray",_width/2+5,135);
+//irginGray.draw(    
+
     recordFbo.draw(0,_height,_width,_height);
     ofDrawBitmapStringHighlight("Buffer Img",5,255);
 

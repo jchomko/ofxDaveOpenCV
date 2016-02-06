@@ -62,7 +62,7 @@ public:
     void toggleGui();
     void drawGui();
     void exit();
-
+	void PrintError(Error error);
     // Getters
     ofPixels getRecordPixels();
     int getNumberOfBlobs();
@@ -96,7 +96,7 @@ public:
     Camera cam;
     Image rawImage;  
     Image convertedImage;
-    ofImage grayImage;
+//    ofImage grayImage;
         
 private:
     
