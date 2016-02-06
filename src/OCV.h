@@ -14,10 +14,14 @@
 //#include "ofxKinect.h"
 #include "ofxV4L2Settings.h"
 #include "ofxGui.h"
+#include "FlyCapture2.h"
 
 //#include "ofxMacamPs3Eye.h"
 
 //#define DEBUG
+
+using namespace FlyCapture2;
+
 
 struct paths
 {
@@ -87,6 +91,12 @@ public:
     void mouseDragged(int x, int y, int button);
     void mousePressed(int x, int y, int button);
     void mouseReleased(int x, int y, int button);
+
+    Error error;
+    Camera cam;
+    Image rawImage;  
+    Image convertedImage;
+    ofImage grayImage;
         
 private:
     

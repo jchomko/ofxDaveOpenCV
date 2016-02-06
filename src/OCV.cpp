@@ -31,10 +31,73 @@ void CV::setup( int width,int height, int framerate)
     gui.loadFromFile("/root/of_v0.8.3_linux64_release/apps/myApps/ShadowingApp/bin/data/camera_settings.xml");
     showGui = false;
 
-    vidGrabber.listDevices();
-    vidGrabber.setDeviceID(0);
-    vidGrabber.setDesiredFrameRate(60);
-    vidGrabber.initGrabber(width*2,height*2);
+    // vidGrabber.listDevices();
+    // vidGrabber.setDeviceID(0);
+    // vidGrabber.setDesiredFrameRate(60);
+    // vidGrabber.initGrabber(width*2,height*2);
+
+    FC2Version fc2Version;
+        //Utilities::GetLibraryVersion( &fc2Version );
+    
+    ostringstream version;
+    version << "FlyCapture2 library version: " << fc2Version.major << "." << fc2Version.minor << "." << fc2Version.type << "." << fc2Version.build;
+    cout << version.str() << endl;  
+    
+    ostringstream timeStamp;
+    timeStamp <<"Application build date: " << __DATE__ << " " << __TIME__;
+    cout << timeStamp.str() << endl << endl;  
+        
+     BusManager busMgr;
+    unsigned int numCameras;
+    error = busMgr.GetNumOfCameras(&numCameras);
+    if (error != PGRERROR_OK)
+    {
+        PrintError( error );
+        
+    }
+    
+    PGRGuid guid;
+    cout << "Number of cameras detected: " << numCameras << endl; 
+
+    for (unsigned int i=0; i < numCameras; i++)
+    {
+       
+        error = busMgr.GetCameraFromIndex(i, &guid);
+        if (error != PGRERROR_OK)
+        {
+            PrintError( error );
+           
+        }
+
+       // RunSingleCamera( guid );
+    }
+    
+    error = cam.Connect(&guid);
+    if (error != PGRERROR_OK)
+    {
+        PrintError( error );
+       
+    }
+
+    CameraInfo camInfo;
+    error = cam.GetCameraInfo(&camInfo);
+    if (error != PGRERROR_OK)
+    {
+        PrintError( error );
+       
+    }
+
+    error = cam.StartCapture();
+    if (error != PGRERROR_OK)
+    {
+        PrintError( error );
+        
+    
+
+    }
+    error = cam.StopCapture();
+
+    error = cam.StartCapture();
 
  //   vidGrabber.videoSettings();
    // kinect.setRegistration(true);
@@ -127,7 +190,20 @@ void CV::setTrackingBoundaries(int x, int y, int w, int h)
 //--------------------------------------------------------------
 void CV::releaseCamera()
 {
-    vidGrabber.close();
+    error = cam.StopCapture();
+    if (error != PGRERROR_OK)
+    {
+        PrintError( error );
+        
+    }      
+
+    // Disconnect the camera
+    error = cam.Disconnect();
+    if (error != PGRERROR_OK)
+    {
+        PrintError( error );
+       
+    }
 
     //kinect.close();
 }
@@ -142,8 +218,14 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
-    vidGrabber.update();
-    bNewFrame = vidGrabber.isFrameNew();
+    error = cam.RetrieveBuffer( &rawImage );
+        if (error != PGRERROR_OK)
+        {
+            PrintError( error );
+        }
+    
+    //vidGrabber.update();
+    bNewFrame = true; //vidGrabber.isFrameNew();
 #endif
 
     if (bNewFrame)
@@ -151,6 +233,7 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
 #ifdef DEBUG
         colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
 #else
+        //grayImage.setFromPixels(rawImage.GetData(), 808, 608);
         colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
 #endif
     
@@ -351,8 +434,14 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
-   vidGrabber.update();
-   bNewFrame = vidGrabber.isFrameNew();
+   error = cam.RetrieveBuffer( &rawImage );
+        if (error != PGRERROR_OK)
+        {
+            PrintError( error );
+        }
+    
+    //vidGrabber.update();
+    bNewFrame = true; //vidGrabber.isFrameNew();
 #endif
 
     if (bNewFrame)
@@ -361,9 +450,13 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 	#ifdef DEBUG
         	colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
 	#else
-        	colorImg.resize(_width*2,_height*2);
-		colorImg.setFromPixels(vidGrabber.getPixels(), _width*2,_height*2);
-		colorImg.resize(_width, _height);
+        //	colorImg.resize(_width*2,_height*2);
+		//colorImg.setFromPixels(vidGrabber.getPixels(), _width*2,_height*2);
+		//colorImg.resize(_width, _height);
+        grayImage.resize(808,608);
+        grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+        colorImg.resize(_width, _height);
+        
 	#endif
         //colorImg.mirror(mirrorV, mirrorH);
         //colorImg.invert();
@@ -377,8 +470,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     //coordWarp.calculateMatrix(warpedPts, dstPts);
         
 	//colorImg.brightnessContrast(brightness, contrast);
-    colorImg.blurGaussian(gaussBlur);
-    grayImage = colorImg;
+    //colorImg.blurGaussian(gaussBlur);
+    //grayImage = colorImg;
 
 //    gray_mat = grayImage.getCvImage();
 //    cv::Rect crop_roi = cv::Rect(_offsetX,_offsetY, _width - _offsetX, _height -_offsetY);
@@ -822,6 +915,9 @@ vector<ofVec3f> CV::getBlobsCentroid()
 }
 */
 
+void CV::PrintError (Error error){
+    error.PrintErrorTrace();
+}
 
 void CV::exit()
 {
