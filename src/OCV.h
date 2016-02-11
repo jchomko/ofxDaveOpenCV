@@ -12,7 +12,7 @@
 #include "guiQuad.h"
 #include "ofxXmlSettings.h"
 //#include "ofxKinect.h"
-#include "ofxV4L2Settings.h"
+//#include "ofxV4L2Settings.h"
 #include "ofxGui.h"
 #include "FlyCapture2.h"
 
@@ -96,7 +96,7 @@ public:
     Camera cam;
     Image rawImage;  
     Image convertedImage;
-//    ofImage grayImage;
+	ofVideoGrabber vidGrabber;
         
 private:
     
@@ -117,14 +117,8 @@ private:
 #ifdef DEBUG
     ofVideoPlayer           debugVideo;
 #else
-    //ofxMacamPs3Eye          vidGrabber;
-    ofVideoGrabber          vidGrabber;
-    //ofxKinect               kinect;
+
 #endif
-	//Settings
-    ofxV4L2Settings settings;
-    ofxPanel gui;
-    bool	showGui;
 
     ofxCvColorImage			colorImg;
     ofxCvGrayscaleImage 	grayImage;
@@ -148,8 +142,6 @@ private:
     vector<ofxCvGrayscaleImage> pastImages;
     ofImage             outputImage;
 
-//    cv::Mat gray_mat;
-//    cv::Mat crop;
 
     ofTexture           outputTex;
     bool learnBackground;
@@ -164,4 +156,3 @@ private:
     unsigned char * pixels;
     
 };
-//#endif /* defined(__ShadowingStage1__OCV__) */

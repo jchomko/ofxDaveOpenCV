@@ -24,20 +24,8 @@ void CV::setup( int width,int height, int framerate)
     debugVideo.loadMovie("Debug/IRCapture.mp4");
     debugVideo.play();
 #else
-    gui.setup("panel","/root/of_v0.8.3_linux64_release/apps/myApps/ShadowingApp/bin/data/camera_settings.xml",0,0);
-    settings.setup("/dev/video0");
-
-    gui.add(settings.parameters);
-    gui.loadFromFile("/root/of_v0.8.3_linux64_release/apps/myApps/ShadowingApp/bin/data/camera_settings.xml");
-    showGui = false;
-
-    // vidGrabber.listDevices();
-    // vidGrabber.setDeviceID(0);
-    // vidGrabber.setDesiredFrameRate(60);
-    // vidGrabber.initGrabber(width*2,height*2);
-
+	//Camera Setup
     FC2Version fc2Version;
-        //Utilities::GetLibraryVersion( &fc2Version );
     
     ostringstream version;
     version << "FlyCapture2 library version: " << fc2Version.major << "." << fc2Version.minor << "." << fc2Version.type << "." << fc2Version.build;
@@ -86,6 +74,16 @@ void CV::setup( int width,int height, int framerate)
         PrintError( error );
        
     }
+    Property camProp;
+    PropertyInfo camPropInfo;
+	camProp.type = FRAME_RATE;
+	//camProp.absControl = true;
+	//camProp.onePush = false;
+	//camProp.onOff = true;
+	//camProp.autoManualMode = false;
+	//camProp.absValue = 25;
+
+    error = cam.SetProperty( &camProp, false); 
 
     error = cam.StartCapture();
     if (error != PGRERROR_OK)
@@ -99,13 +97,7 @@ void CV::setup( int width,int height, int framerate)
 
     error = cam.StartCapture();
 
- //   vidGrabber.videoSettings();
-   // kinect.setRegistration(true);
-   // kinect.init();
-   // kinect.open();
-   // kinect.setDepthClipping(0,100000);
-    //vidGrabber.setFlicker(0); /* 0 - no flicker, 1 - 50hz, 2 - 60hz */
-
+ 
 #endif
 
     //Allocate the Memory for the CV processes
@@ -138,6 +130,7 @@ void CV::setup( int width,int height, int framerate)
     cleanFrameDiff.allocate(width,height);
 
     outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
+
     outpix = new unsigned char[width*height*4];
     
     for(int i = 0; i <width*height*4;  i++ ){
@@ -381,7 +374,8 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 		diffImage.invert();
 
 	       	lastFrame = colorImg;
-	       	outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
+
+		outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
 
 		//If no-one has been in the light for awhile, start saving the background
 		if((contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  10000)) |  ofGetFrameNum() < 30 ) // | bLearnBackground )
@@ -450,17 +444,13 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 	#ifdef DEBUG
         	colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
 	#else
-        //	colorImg.resize(_width*2,_height*2);
-		//colorImg.setFromPixels(vidGrabber.getPixels(), _width*2,_height*2);
-		//colorImg.resize(_width, _height);
+
         grayImage.resize(808,608);
         grayImage.setFromPixels(rawImage.GetData(), 808, 608);
         grayImage.resize(_width, _height);
         virginGray = grayImage;
 
 	#endif
-        //colorImg.mirror(mirrorV, mirrorH);
-        //colorImg.invert();
 
 	//Warping
             // We get back the warped coordinates - scaled to our camera size
@@ -495,15 +485,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
     diffImage.absDiff(grayBg);
 
-    //invDiffImage = diffImage;
-
     diffImage += cleanFrameDiff;
-
-   //invDiffImage.threshold(255-imgThreshold);
-   //invDiffImage.invert(); 
-   //diffImage.invert();
-
-   //diffImage.threshold(imgThreshold);
 
    diffImage.brightnessContrast(brightness, contrast);
    diffImage.blur(blur);
@@ -533,7 +515,6 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
 	lastFrame.blurMedian(medianBlur);
 
-//	outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
         outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
     }
 
@@ -626,7 +607,8 @@ bool CV::newFrame()
 #ifdef DEBUG
     return debugVideo.isFrameNew();
 #else
-    return vidGrabber.isFrameNew();
+	return true;
+   //return vidGrabber.isFrameNew();
 #endif
 }
 //--------------------------------------------------------------
@@ -688,14 +670,14 @@ void CV::relearnBackground()
 //------------------------------------------------------------
 void CV::toggleGui()
 {
-	showGui = !showGui;
+//	showGui = !showGui;
 }
 //-------------------------------------------------------------
 void CV::drawGui()
 {
-	 if(showGui){
-		gui.draw();
-	}
+//	 if(showGui){
+//		gui.draw();
+//	}
 }
 //--------------------------------------------------------------
 void CV::drawLiveShadow()
@@ -925,6 +907,6 @@ void CV::PrintError (Error error){
 
 void CV::exit()
 {
-	gui.saveToFile("camera_settings.xml");
+	//gui.saveToFile("camera_settings.xml");
 }
 
