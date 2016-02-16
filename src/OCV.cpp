@@ -76,7 +76,8 @@ void CV::setup( int width,int height, int framerate)
     }
     Property camProp;
     PropertyInfo camPropInfo;
-	camProp.type = FRAME_RATE;
+    camProp.type = FRAME_RATE;
+
 	//camProp.absControl = true;
 	//camProp.onePush = false;
 	//camProp.onOff = true;
@@ -215,10 +216,13 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
         if (error != PGRERROR_OK)
         {
             PrintError( error );
-        }
+	    bNewFrame = false; 
+        }else{
+	    bNewFrame = true;
+	}
     
     //vidGrabber.update();
-    bNewFrame = true; //vidGrabber.isFrameNew();
+    //bNewFrame = true; //vidGrabber.isFrameNew();
 #endif
 
     if (bNewFrame)
