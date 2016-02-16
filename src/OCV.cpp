@@ -72,19 +72,44 @@ void CV::setup( int width,int height, int framerate)
     if (error != PGRERROR_OK)
     {
         PrintError( error );
-       
     }
+
     Property camProp;
     PropertyInfo camPropInfo;
+
     camProp.type = FRAME_RATE;
+    error = cam.GetProperty( &camProp );
+    if (error != PGRERROR_OK){
+        PrintError( error );
+    }
+    cout <<  "Frame rate is : " <<  camProp.absValue << endl;
 
-	//camProp.absControl = true;
-	//camProp.onePush = false;
-	//camProp.onOff = true;
-	//camProp.autoManualMode = false;
-	//camProp.absValue = 25;
+/*
+    camProp.type = GAIN;
+    error = cam.GetProperty( &camProp );
+    if (error != PGRERROR_OK){
+        PrintError( error );
+   //     return -1;
+    }
 
-    error = cam.SetProperty( &camProp, false); 
+    camProp.autoManualMode = false;
+    camProp.valueA = 16;  //16-64
+
+    error = cam.SetProperty( &camProp );
+    if (error != PGRERROR_OK){
+        PrintError( error );
+        //return -1;
+    }
+*/
+
+
+    //camProp.absControl = true;
+    //camProp.onePush = false;
+    //camProp.onOff = true;
+    //camProp.autoManualMode = false;
+    //camProp.absValue = 25;
+
+//    error = cam.SetProperty( &camProp, false); 
 
     error = cam.StartCapture();
     if (error != PGRERROR_OK)
@@ -94,6 +119,7 @@ void CV::setup( int width,int height, int framerate)
     
 
     }
+
     error = cam.StopCapture();
 
     error = cam.StartCapture();
@@ -457,23 +483,22 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 	#endif
 
 	//Warping
-            // We get back the warped coordinates - scaled to our camera size
-    //ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
-		// Lets warp with those cool coordinates!!!!!
-    //colorImg.warpIntoMe(colorImg, warpedPts, dstPts);
-		// Lets calculate the openCV matrix for our coordWarping
-    //coordWarp.calculateMatrix(warpedPts, dstPts);
-        
+        // We get back the warped coordinates - scaled to our camera size
+	ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
+	// Lets warp with those cool coordinates!!!!!
+        grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
+	// Lets calculate the openCV matrix for our coordWarping
+        coordWarp.calculateMatrix(warpedPts, dstPts);
 	//colorImg.brightnessContrast(brightness, contrast);
-    //colorImg.blurGaussian(gaussBlur);
-    //grayImage = colorImg;
+        //colorImg.blurGaussian(gaussBlur);
+        //grayImage = colorImg;
 
 //    gray_mat = grayImage.getCvImage();
 //    cv::Rect crop_roi = cv::Rect(_offsetX,_offsetY, _width - _offsetX, _height -_offsetY);
 //    crop = gray_mat(crop_roi).clone();
 //    grayImage = crop;
 
-    grayImage.blurMedian(medianBlur);
+        grayImage.blurMedian(medianBlur);
 
     frameDiff = grayImage;
     diffImage = grayImage;
@@ -699,7 +724,9 @@ void CV::drawCalibration()
 {
     ofPushStyle();
     ofSetColor(255);
-    colorImg.draw(0, 0,_width,_height);
+    ofPushMatrix();
+    ofTranslate(ofGetWidth()-_width*2, ofGetHeight()-_height);
+    virginGray.draw(0, 0,_width,_height);
     ofDrawBitmapStringHighlight("Warper",0+5,15);
     ofSetColor(255);
     grayWarped.draw(_width,0,_width,_height);
@@ -715,6 +742,8 @@ void CV::drawCalibration()
     }
     
     ofPopStyle();
+    ofPopMatrix();
+
 }
 //--------------------------------------------------------------
 void CV::drawAllPaths()
@@ -743,11 +772,11 @@ void CV::getAllPaths()
 void CV::drawTracking()
 {
     ofPushMatrix();
-    ofTranslate(_width, 0);
+    ofTranslate(ofGetWidth()-_width*2, 0);
     ofSetColor(0, 0, 0);
     ofFill();
-    ofRect(0, 0, _width, _height);
-    ofSetColor(255, 255, 255);
+    //ofRect(0, 0, _width, _height);
+    //ofSetColor(255, 255, 255);
     contourFinder.draw(0,0,_width,_height);
    
     ofNoFill();
@@ -815,33 +844,24 @@ void CV::draw()
 {
     
     drawCalibration();
-    ofPushMatrix();
-    ofTranslate(0, _height);
+    //ofPushMatrix();
+    //ofTranslate(0, _height);
     ofSetColor(255);
-	
+
     ofFill();
-    ofDrawBitmapStringHighlight("Diff Img",0+5,15);
-	diffImage.draw(_width/2,0,_width/2,_height/2);  // Gray Warped
-    
-   ofDrawBitmapStringHighlight("Gray Bg",_width/2+5,15);
-	grayBg.draw(0,120,_width/2,_height/2);
-   
-	 ofDrawBitmapStringHighlight("Virgin Gray",5,135);
-   	virginGray.draw(_width/2,120,_width/2,_height/2);
-    //grayDiff.draw(_width/2,120,_width/2,_height/2);
-  // /ofDrawBitmapStringHighlight("Virgin Gray",_width/2+5,135);
-//irginGray.draw(    
 
-    recordFbo.draw(0,_height,_width,_height);
-    ofDrawBitmapStringHighlight("Buffer Img",5,255);
+    virginGray.draw(ofGetWidth() - 2*_width,0,_width,_height);
+    ofDrawBitmapStringHighlight("Virgin Gray",ofGetWidth() - 2*_width, 15);
 
+    recordFbo.draw(ofGetWidth()- 2*_width,_height,_width,_height);
+    ofDrawBitmapStringHighlight("Record Fbo",ofGetWidth() - 2*_width, _height+15);
 
-    diffImage.draw(320,0,_width, _height);
+    grayBg.draw(ofGetWidth()-2*_width, _height*2,_width/2,_height/2);
+    ofDrawBitmapStringHighlight("Gray Bg", ofGetWidth() - 2*_width, _height*2+15);
 
-    //diffImage.draw(240,0,_width/2,_height/2);
     drawTracking();
-    ofDrawBitmapStringHighlight("contour finder w inv diff",_width+5,15);
-    ofPopMatrix();
+    //ofPopMatrix();
+
 }
 //--------------------------------------------------------------
 ofPixels CV::getRecordPixels()
