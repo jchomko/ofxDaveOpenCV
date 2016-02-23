@@ -49,7 +49,10 @@ public:
     // John's Loop
     void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold,int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast, bool erode, bool dilate);
 
-	//ProgSubLoop
+    //Path sub loop
+    void PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold,int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast, bool erode, bool dilate);
+
+  //ProgSubLoop
 	void progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur, float brightness, float contrast);
     void readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor);
     void draw();
