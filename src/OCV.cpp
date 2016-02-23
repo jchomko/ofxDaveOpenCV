@@ -608,14 +608,14 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
       grayImage.resize(_width, _height);
       virginGray = grayImage;
 
-      grayImage.blur(3);
+      grayImage.blur(blur);
 
        grayImage.absDiff(grayBg);
        grayImage.dilate();
        grayImage.brightnessContrast(brightness, contrast);
-       grayImage.blur(5);
+       grayImage.blur(blur);
        grayImage.threshold(threshold);
-       imagingContourFinder.findContours(grayImage, 250, 999999, 4, false);
+       imagingContourFinder.findContours(grayImage, 100, 999999, 4, false);
 
        frameDiff.absDiff(lastFrame);
        frameDiff.threshold(moveThreshold);
