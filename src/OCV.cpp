@@ -659,7 +659,7 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
        pathFbo.end();
        ofPixels output;
        pathFbo.readToPixels(output);
-       outputImage.setFromPixels(output, _width, _height, OF_IMAGE_GRAYSCALE);
+       outputImage.setFromPixels(output.getPixels(), _width, _height, OF_IMAGE_GRAYSCALE);
   }//End bNewFrame
 
   //On Exit
