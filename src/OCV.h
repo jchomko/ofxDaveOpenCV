@@ -26,26 +26,26 @@ using namespace FlyCapture2;
 struct paths
 {
     vector <ofVec2f> bPath;
-    
+
 };
 
 class CV : public ofBaseApp {
-    
+
 public:
     void setup(int width, int height, int framerate);
 
     // Camera Calibration
     void setupCameraView();
-    
+
     // Specifically the PS3 eye needs releasing to ensure the locking mechanism is unlocked
     void releaseCamera();
-    
+
     // Loop with Brightness and Contrast
     void subtractionLoop(bool bLearnBackground, bool useProgressiveLearn,float progressionRate,bool mirrorH,bool mirrorV,int threshold,int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation, float brightness,float contrast,bool erode,bool dilate);
-    
+
     // Loop without Brightness and Contrast
     void subtractionLoop(bool bLearnBackground, bool useProgressiveLearn,float progressionRate,bool mirrorH,bool mirrorV,int threshold,int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,bool erode,bool dilate);
-    
+
     // John's Loop
     void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold,int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast, bool erode, bool dilate);
 
@@ -69,43 +69,43 @@ public:
     string getBlobData();
     bool isSomeoneThere();
     bool isSomeoneInTheLight();
-    
-    
+
+
     bool newFrame();
     ofVec2f getBlobPath();
     vector <ofVec3f> getBlobsCentroid();
     // Setters
-    
+
     void setTrackingBoundaries(int x, int y, int w, int h);
     void setTrackingBoundaries(int offsetX, int offsetY);
     void setColorInverse();
     void setCVMode(int mode);
     void relearnBackground();
-    
+
     void setCalibration(bool setMode);
     bool canDoCalibration;
     vector <ofVec2f> blobPath;
-    
+
     vector <paths> blobPaths;
-    
+
     void mouseDragged(int x, int y, int button);
     void mousePressed(int x, int y, int button);
     void mouseReleased(int x, int y, int button);
 
     Error error;
     Camera cam;
-    Image rawImage;  
+    Image rawImage;
     Image convertedImage;
 	ofVideoGrabber vidGrabber;
-        
+
 private:
-    
+
     ofxXmlSettings XML;
     ofPoint srcPts[4];
     ofPoint dstPts[4];
     guiQuad cvWarpQuad;
     coordWarping coordWarp;
-    
+
     int _width;
     int _height;
     int _offsetX;
@@ -113,7 +113,7 @@ private:
     ofFbo recordFbo;
     ofPixels pix;
     //vector<ofVec3f>centroids;
-    
+
 #ifdef DEBUG
     ofVideoPlayer           debugVideo;
 #else
@@ -130,6 +130,7 @@ private:
     ofxCvShortImage     kinectGray;
 
     ofxCvContourFinder      contourFinder;
+    ofxCvContourFinder      imagingContourFinder;
     
     ofxCvGrayscaleImage     diffImage;
     ofxCvGrayscaleImage     threshImage;
@@ -154,5 +155,6 @@ private:
     long presenceTimer;
     unsigned char * outpix;
     unsigned char * pixels;
-    
+    ofPixels  outpix;
+
 };
