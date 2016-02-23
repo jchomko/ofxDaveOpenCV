@@ -102,8 +102,8 @@ public:
 	ofVideoGrabber vidGrabber;
 
     ofFbo       pathFbo;
-    ofPath      blobPath;
-    vector<ofPath> blobPaths;
+    ofPath      imgBlobPath;
+    vector<ofPath> imgBlobPaths;
 
 private:
 

@@ -610,13 +610,7 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
       grayImage.blur(3);
 
-      if(getBackground){
-           //backgroundFrames = 0;
-           getBackground = false;
-           backImage = grayImage;
-       }
-
-       grayImage.absDiff(backImage);
+       grayImage.absDiff(grayBg);
        grayImage.dilate();
        grayImage.brightnessContrast(brightness, contrast);
        grayImage.blur(5);
@@ -631,30 +625,30 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
        //Draw Filled Contours
        if(contourFinder.nBlobs > 0){
 
-          blobPaths.clear();
+          imgBlobPaths.clear();
 
           for(int b = 0; b < imagingContourFinder.nBlobs; b ++){
 
                for(int p = 0; p < imagingContourFinder.blobs[b].pts.size(); p ++){
-                   blobPath.curveTo(imagingContourFinder.blobs[b].pts[p]);
+                   imgBlobPath.curveTo(imagingContourFinder.blobs[b].pts[p]);
                }
 
-               blobPath.setFilled(true);
-               blobPath.setFillColor(ofColor(0));
-               blobPaths.push_back(blobPath);
-               blobPath.clear();
+               imgBlobPath.setFilled(true);
+               imgBlobPath.setFillColor(ofColor(0));
+               imgBlobPaths.push_back(imgBlobPath);
+               imgBlobPath.clear();
 
                }
             }else{
 
-           blobPaths.clear();
+           imgBlobPaths.clear();
        }
        pathFbo.begin();
            ofClear(255);
            ofBackground(255);
 
-           for(int i = 0; i < blobPaths.size(); i ++){
-               blobPaths[i].draw(0, 0);
+           for(int i = 0; i < imgBlobPaths.size(); i ++){
+               imgBlobPaths[i].draw(0, 0);
            }
        pathFbo.end();
        ofPixels output;
