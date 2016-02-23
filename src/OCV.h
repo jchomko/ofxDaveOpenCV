@@ -131,7 +131,7 @@ private:
 
     ofxCvContourFinder      contourFinder;
     ofxCvContourFinder      imagingContourFinder;
-    
+
     ofxCvGrayscaleImage     diffImage;
     ofxCvGrayscaleImage     threshImage;
     ofxCvGrayscaleImage     lastFrame;
@@ -155,6 +155,5 @@ private:
     long presenceTimer;
     unsigned char * outpix;
     unsigned char * pixels;
-    ofPixels  outpix;
 
 };
