@@ -618,7 +618,7 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
        grayImage.blur(blur);
        grayImage.threshold(threshold);
        imagingContourFinder.findContours(grayImage, 100, 999999, 4, false);
-
+       
 	frameDiff = virginGray;
        frameDiff.absDiff(lastFrame);
        frameDiff.threshold(moveThreshold);
@@ -646,18 +646,18 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
            imgBlobPaths.clear();
        }
-/*       pathFbo.begin();
+       pathFbo.begin();
            ofClear(255);
            ofBackground(255);
 
            for(int i = 0; i < imgBlobPaths.size(); i ++){
                imgBlobPaths[i].draw(0, 0);
            }
+
        pathFbo.end();
        ofPixels output;
        pathFbo.readToPixels(output);
        outputImage.setFromPixels(output.getPixels(), _width, _height, OF_IMAGE_GRAYSCALE);
-*/
   }//End bNewFrame
 
   //On Exit
