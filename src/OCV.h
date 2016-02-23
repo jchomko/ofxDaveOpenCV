@@ -101,6 +101,10 @@ public:
     Image convertedImage;
 	ofVideoGrabber vidGrabber;
 
+    ofFbo       pathFbo;
+    ofPath      blobPath;
+    vector<ofPath> blobPaths;
+
 private:
 
     ofxXmlSettings XML;
