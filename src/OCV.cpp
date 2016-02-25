@@ -175,9 +175,9 @@ void CV::setup( int width,int height, int framerate)
     recordFbo.begin();
     ofClear(0);
     recordFbo.end();
-    
+
     pathFbo.allocate(width, height);
-	
+
     learnBackground = true;
     startLearn = true;
 
@@ -619,7 +619,7 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
        grayImage.threshold(imgThreshold);
        imagingContourFinder.findContours(grayImage, 100, 999999, 4, false);
 
-	frameDiff = virginGray;
+	      frameDiff = virginGray;
        frameDiff.absDiff(lastFrame);
        frameDiff.threshold(moveThreshold);
 
@@ -643,8 +643,8 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
                }
             }else{
-
-           imgBlobPaths.clear();
+            //clear blob paths
+           //imgBlobPaths.clear();
        }
        pathFbo.begin();
            ofClear(255);
@@ -693,7 +693,10 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
   }
 
   if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
-  present = false;
+    present = false;
+    //Trying to remove flash
+    imgBlobPaths.clear();
+
   }
 
   if(contourFinder.nBlobs > 0)
