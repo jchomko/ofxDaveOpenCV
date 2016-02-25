@@ -625,8 +625,9 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
        contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum, fillHoles, useApproximation);
 
-       //Draw Filled Contours
-       if(contourFinder.nBlobs > 0){
+       //Draw Filled Contours -- 
+       //Only draw if there is something to draw
+       if(imagingContourFinder.nBlobs > 0){
 
           imgBlobPaths.clear();
 
