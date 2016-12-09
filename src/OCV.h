@@ -18,7 +18,7 @@
 
 //#include "ofxMacamPs3Eye.h"
 
-//#define DEBUG
+// #define DEBUG
 
 using namespace FlyCapture2;
 
