@@ -155,10 +155,12 @@ void CV::setup( int width,int height, int framerate)
     cout << "Allocating Thresh Image" << endl;
     virginGray.allocate(width,height);
     cout << "Allocating VirginGray Image" << endl;
+    colorImage.allocate(width,height);
+	
 //    kinectGray.allocate(width*2,height*2);
 
-    invDiffImage.allocate(width,height);
-    cleanFrameDiff.allocate(width,height);
+//    invDiffImage.allocate(width,height);
+//    cleanFrameDiff.allocate(width,height);
 
     outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
 
@@ -267,13 +269,13 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
     if (bNewFrame)
     {
 #ifdef DEBUG
-        colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
+        colorImage.setFromPixels(debugVideo.getPixels(),_width,_height);
 #else
         //grayImage.setFromPixels(rawImage.GetData(), 808, 608);
-        colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
+        colorImage.setFromPixels(vidGrabber.getPixels(), _width,_height);
 #endif
 
-        colorImg.mirror(mirrorV, mirrorH);
+        colorImage.mirror(mirrorV, mirrorH);
 //        grayImage = colorImg;
 
         if (useProgressiveLearn == true)
@@ -335,12 +337,12 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
     {
 
 #ifdef DEBUG
-        colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
+        colorImage.setFromPixels(debugVideo.getPixels(),_width,_height);
 #else
-        colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
+        colorImage.setFromPixels(vidGrabber.getPixels(), _width,_height);
 #endif
-        colorImg.mirror(mirrorV, mirrorH);
-        grayImage = colorImg;
+        colorImage.mirror(mirrorV, mirrorH);
+        grayImage = colorImage;
 
         if (useProgressiveLearn == true)
         {
@@ -373,6 +375,7 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
     }
 }
 
+/*
 void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur, float brightness, float contrast)
 {
 	bool bNewFrame = false;
@@ -462,6 +465,9 @@ void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur
 	}//End of New Frame
 
 }
+*/
+
+/*
 //--------------------------------------------------------------
 void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
 {
@@ -698,7 +704,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 }
 
 
-
+*/
 
 
 
@@ -732,26 +738,50 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
-    vidGrabber.update();
-    bNewFrame = vidGrabber.isFrameNew();
+   error = cam.RetrieveBuffer( &rawImage );
+        if (error != PGRERROR_OK)
+        {
+            PrintError( error );
+        }
+
+    //vidGrabber.update();
+    bNewFrame = true; //vidGrabber.isFrameNew();
 #endif
-    
-    if (bNewFrame)
-    {
-        
-#ifdef DEBUG
-        colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
-#else
-        colorImg.setFromPixels(vidGrabber.getPixels(), _width,_height);
-#endif
-        colorImg.mirror(mirrorV, mirrorH);
-        grayImage = colorImg;
-        
-        
-        cv::Mat origFrameMat = cv::Mat(colorImg.getCvImage());
-        
-        cv::Mat frameMat = cv::Mat(colorImg.getCvImage());
-        
+
+    if (bNewFrame){
+
+        #ifdef DEBUG
+          colorImage.setFromPixels(debugVideo.getPixels(),_width,_height);
+        #else
+
+        grayImage.resize(808,608);
+        grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+        grayImage.resize(_width, _height);
+        virginGray = grayImage;
+
+	//cv::cvtColor(grayImage, colorImage, cv::COLOR_GRAY2BGR);
+	colorImage.setFromGrayscalePlanarImages(grayImage, grayImage, grayImage);
+	
+
+        #endif
+
+
+       	colorImage.mirror(mirrorV, mirrorH);
+	
+	//colorImg = grayImage;
+
+
+        grayImage = colorImage;
+
+	frameDiff = grayImage;
+
+        cv::Mat origFrameMat = cv::Mat(colorImage.getCvImage());
+
+        cv::Mat frameMat = cv::Mat(colorImage.getCvImage());
+
+//	 cv::Mat origFrameMat = cv::Mat(grayImage.getCvImage());
+//        cv::Mat frameMat = cv::Mat(grayImage.getCvImage());
+
         // pre blur
         cv::medianBlur(frameMat, frameMat, pre_blur);
         
@@ -877,7 +907,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         keyOut2 = whiteMat.mul(mask2);
         keyOut2.convertTo(keyOut2, CV_8UC1);
         cv::subtract(cv::Scalar::all(255),keyOut2,keyOut2);
-
+	
         
         /*
          * Blending with frame image
@@ -910,6 +940,30 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         }
         keyOut4.convertTo(keyOut4, CV_8UC3);
         */
+
+	        //frameDiff.brightnessContrast(brightness, contrast);
+        
+        //FrameDiff
+        frameDiff.absDiff(lastFrame);
+        frameDiff.threshold(10);
+        
+         //Frame diff Contour Finder
+        //contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
+        contourFinder.findContours(frameDiff, 300, 9999999, 1,false,false);
+	
+	lastFrame = grayImage;
+	 
+
+	if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
+           present = false;
+	}
+
+	if(contourFinder.nBlobs > 0){
+		backgroundTimer = ofGetElapsedTimeMillis();
+        	//While Present
+        	present = true;
+        	absenceTimer = ofGetElapsedTimeMillis() + 5000;
+    	}
     }
 }
 
@@ -939,7 +993,10 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
         ofEndShape(true);
     }*/
     ofSetColor(255, 255, 255);
-    outputImage.draw(0, 0, _width,_height);
+    //outputImage.draw(0, 0, _width,_height);
+
+    drawMat(keyOut2, 0, 20,_width/2,_height/2);
+
     glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     recordFbo.end();
 
@@ -1175,18 +1232,18 @@ void CV::draw()
     ofFill();
     ofSetColor(255);
     
-    /*
+    
     float x = 0.f, y = 0.f;
     
     ofPushMatrix();
     ofTranslate(x, y);
     ofDrawBitmapStringHighlight("colorImg",5,15);
-    colorImg.draw(0,20,_width/2,_height/2);
+    colorImage.draw(0,20,_width/2,_height/2);
     ofPopMatrix();
     x += _width/2;
     
     
-    /*
+    
     ofPushMatrix();
     ofTranslate(x, y);
     ofDrawBitmapStringHighlight("grayImage",5,15);
@@ -1214,7 +1271,7 @@ void CV::draw()
     grayDiff.draw(0,20,_width/2,_height/2);
     ofPopMatrix();
     x += _width/2;
-    /
+    
     
     
     ofPushMatrix();
@@ -1269,16 +1326,7 @@ void CV::draw()
     
     
     
-//    drawCalibration();
-    ofPushMatrix();
-    ofTranslate(0, _height);
->>>>>>> 82bd4231c871adbef7d198d2fe8cf9485b16f0a0
-    ofSetColor(255);
-
-    ofFill();
-<<<<<<< HEAD
-	*/
-
+	/*
     virginGray.draw(ofGetWidth() - 2*_width,0,_width,_height);
     ofDrawBitmapStringHighlight("Virgin Gray",ofGetWidth() - 2*_width, 15);
 
@@ -1299,7 +1347,7 @@ void CV::draw()
     ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
     recordFbo.draw(0,_height,_width,_height);
     ofDrawBitmapStringHighlight("Buffer Img",5,255);
-
+  */
     diffImage.draw(240,0,_width/2,_height/2);
     drawTracking();
     //ofPopMatrix();

@@ -31,7 +31,7 @@
 
 using namespace ofxCv;
 
-#define DEBUG
+//#define DEBUG
 
 using namespace FlyCapture2;
 
@@ -59,7 +59,7 @@ public:
     // Loop without Brightness and Contrast
     void subtractionLoop(bool bLearnBackground, bool useProgressiveLearn,float progressionRate,bool mirrorH,bool mirrorV,int threshold,int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,bool erode,bool dilate);
 
-    void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast);
+//    void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast);
     
     // Dawid's loop
     void DsubtractionLoop(bool mirrorH, bool mirrorV);
@@ -137,7 +137,7 @@ private:
 
 #endif
 
-    ofxCvColorImage			colorImg;
+    ofxCvColorImage			colorImage;
     ofxCvGrayscaleImage 	grayImage;
     ofxCvGrayscaleImage 	grayBg;
     ofxCvGrayscaleImage 	grayDiff;
