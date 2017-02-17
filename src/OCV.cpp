@@ -160,7 +160,7 @@ void CV::setup( int width,int height, int framerate)
 //    kinectGray.allocate(width*2,height*2);
 
 //    invDiffImage.allocate(width,height);
-//    cleanFrameDiff.allocate(width,height);
+    cleanFrameDiff.allocate(width,height);
 
     outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
 
@@ -375,99 +375,6 @@ void CV::subtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float 
     }
 }
 
-/*
-void CV::progSubLoop(int minBlobSize, int maxBlobSize, int threshold, float blur, float brightness, float contrast)
-{
-	bool bNewFrame = false;
-	vidGrabber.update();
-	bNewFrame = vidGrabber.isFrameNew();
-
-   	 if (bNewFrame)
-   	 {
-		    colorImg.resize(_width*2, _height*2);
-		    colorImg.setFromPixels(vidGrabber.getPixels(), _width*2,_height*2);
-		    colorImg.resize(_width, _height);
-			grayImage = colorImg;
-
-		    frameDiff = grayImage;
-        	diffImage = grayImage;
-
-        	//FrameDiff
-        	frameDiff.absDiff(lastFrame);
-        	frameDiff.threshold(threshold);
-
-        	frameDiff.resize(_width/2, _width/2);
-        	//Frame diff Contour Finder
-        	contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, 4,false,true);
-
-        	//Background sub for static background
-        	grayBg.blur(blur);
-
-        	diffImage.absDiff(grayBg);
-
-		//diffImage.dilate_3x3();
-		    //diffImage.contrastStretch();
-		    //diffImage.threshold(threshold);
-
-        	frameDiff.resize(_width, _height);
-
-        	//diffImage += frameDiff;
-
-        	diffImage.blur(blur);
-
-                diffImage.brightnessContrast(brightness,contrast);
-
-		diffImage.invert();
-
-	       	lastFrame = colorImg;
-
-		outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
-
-		//If no-one has been in the light for awhile, start saving the background
-		if((contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  10000)) |  ofGetFrameNum() < 30 ) // | bLearnBackground )
-    		{
-			lastFrame = colorImg;
-		        pastImages.push_back(lastFrame);
-
-        		//Maybe do an average of all 50 images? and then lighten / darken ?
-        		if(pastImages.size() > 50)
-			{
-                		pastImages.erase(pastImages.begin());
-         		}
-
-        		if(pastImages.size() > 0)
-        		{
-				grayFloatBg.addWeighted(pastImages[0], 0.1);
-            			grayBg = grayFloatBg;
-            			//grayBg = pastImages[0];
-            			//grayBg.brightnessContrast(-0.5,0);
-            			grayBg.blur(blur);
-        		}
-        		//bLearnBackground = false;
-        		//present = false;
-    		}
-
-		//If person stops moving in light
-    		if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1300)
-		{
-        		present = false;
-    		}
-
-		//If person enters the light
-    		if(contourFinder.nBlobs > 0)
-    		{
-        		backgroundTimer = ofGetElapsedTimeMillis();
-        		//While Present
-        		present = true;
-        		absenceTimer = ofGetElapsedTimeMillis() + 5000;
-    		}
-
-	}//End of New Frame
-
-}
-*/
-
-/*
 //--------------------------------------------------------------
 void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
 {
@@ -521,7 +428,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
     frameDiff = grayImage;
     diffImage = grayImage;
-    invDiffImage = grayImage;
+    //invDiffImage = grayImage;
 
     frameDiff.absDiff(lastFrame);
 
@@ -622,7 +529,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
 
 
-        lastFrame = colorImg;
+        lastFrame = colorImage;
         pastImages.push_back(lastFrame);
 
         //outputImage.setFromPixels(diffImage.getPixels())
@@ -654,7 +561,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
         lastFrame = virginGray;
 
-	       lastFrame.blurMedian(medianBlur);
+	lastFrame.blurMedian(medianBlur);
 
         outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
     }
@@ -700,11 +607,32 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         present = true;
         absenceTimer = ofGetElapsedTimeMillis() + 5000;
     }
+	
+	// Compile the FBO
+	recordFbo.begin();
+	ofSetColor(255);
+	/*
+	ofFill();
+	ofRect(0, 0, _width, _height);
+	for (int i = 0; i < contourFinder.nBlobs; i++)
+	{
+	        ofSetColor(0);
+       		ofBeginShape();
+
+		for (int k = 0 ; k < contourFinder.blobs[i].nPts; k++)
+        	{
+            		ofVertex(contourFinder.blobs[i].pts[k].x, contourFinder.blobs[i].pts[k].y);
+        	}
+        	ofEndShape(true);
+   	 }
+	*/	
+	outputImage.draw(0, 0, _width,_height);
+
+    	recordFbo.end();
+	
+	pix.setFromPixels(pixels, _width, _height, 4);
 
 }
-
-
-*/
 
 
 
@@ -964,7 +892,16 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         	present = true;
         	absenceTimer = ofGetElapsedTimeMillis() + 5000;
     	}
-    }
+
+	recordFbo.begin();
+	ofSetColor(255, 255, 255);
+	drawMat(keyOut2, 0, 20,_width/2,_height/2);
+	glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	recordFbo.end();
+	pix.setFromPixels(pixels, _width, _height, 4);
+
+    
+	}
 }
 
 
@@ -973,14 +910,16 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 //--------------------------------------------------------------
 void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
 {
-
+     /*
     // Clear the Pixel object
     //pix.clear();
 
     // Compile the FBO
     recordFbo.begin();
     ofSetColor(backgroundColor);
-    /*ofFill();
+    */
+	
+	/*ofFill();
     ofRect(0, 0, _width, _height);
     for (int i = 0; i < contourFinder.nBlobs; i++)
     {
@@ -992,6 +931,8 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
         }
         ofEndShape(true);
     }*/
+    
+	/*
     ofSetColor(255, 255, 255);
     //outputImage.draw(0, 0, _width,_height);
 
@@ -1011,6 +952,7 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
             blobPaths[i].bPath.clear();
         }
     }
+	*/
 
 }
 //--------------------------------------------------------------
