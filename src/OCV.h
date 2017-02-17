@@ -31,7 +31,7 @@
 
 using namespace ofxCv;
 
-//#define DEBUG
+#define DEBUG
 
 using namespace FlyCapture2;
 

@@ -384,27 +384,31 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
-   error = cam.RetrieveBuffer( &rawImage );
-        if (error != PGRERROR_OK)
+	error = cam.RetrieveBuffer( &rawImage );
+	if (error != PGRERROR_OK)
         {
             PrintError( error );
         }
-
-    //vidGrabber.update();
-    bNewFrame = true; //vidGrabber.isFrameNew();
+	//vidGrabber.update();
+	bNewFrame = true; //vidGrabber.isFrameNew();
 #endif
 
-    if (bNewFrame)
-    {
+    if (bNewFrame){
 
 	#ifdef DEBUG
-        	colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
+
+		colorImage.resize(808,608);
+                colorImage.setFromPixels(debugVideo.getPixels(),808,608);
+                colorImage.resize(_width, _height);
+		grayImage = colorImage;
+		virginGray = grayImage;
+
 	#else
 
-        grayImage.resize(808,608);
-        grayImage.setFromPixels(rawImage.GetData(), 808, 608);
-        grayImage.resize(_width, _height);
-        virginGray = grayImage;
+        	grayImage.resize(808,608);
+        	grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+        	grayImage.resize(_width, _height);
+        	virginGray = grayImage;
 
 	#endif
 
@@ -610,7 +614,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 	
 	// Compile the FBO
 	recordFbo.begin();
-	ofSetColor(255);
+//	ofSetColor(255);
 	/*
 	ofFill();
 	ofRect(0, 0, _width, _height);
@@ -625,11 +629,13 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         	}
         	ofEndShape(true);
    	 }
-	*/	
-	outputImage.draw(0, 0, _width,_height);
+	*/
+	// ofSetColor(255, 255, 255);
+    	//outputImage.draw(0, 0, _width,_height);
 
+	outputImage.draw(0, 0, _width,_height);
+	glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     	recordFbo.end();
-	
 	pix.setFromPixels(pixels, _width, _height, 4);
 
 }
@@ -646,17 +652,17 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
     
     int threshold_min = 200;
     
-    int pre_blur = 5;
+    int pre_blur = 1;
     
-    int erosion_size = 5;
-    int dilation_size = 32;
-    int const max_elem = 2;
-    int const max_kernel_size = 21;
+    int erosion_size = 1;
+    int dilation_size = 8;
+    int const max_elem = 4;
+    int const max_kernel_size = 11;
     
-    int morph_size = 16; // 32
+    int morph_size = 4; // 32
     int morph_iterations = 2;
     
-    int post_blur = 5;
+    int post_blur = 1;
     
     // --
     
@@ -679,8 +685,10 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
     if (bNewFrame){
 
         #ifdef DEBUG
-          colorImage.setFromPixels(debugVideo.getPixels(),_width,_height);
-        #else
+		colorImage.resize(808,608);
+		colorImage.setFromPixels(debugVideo.getPixels(),808,608);
+        	colorImage.resize(_width, _height);
+	#else
 
         grayImage.resize(808,608);
         grayImage.setFromPixels(rawImage.GetData(), 808, 608);
@@ -689,13 +697,12 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 
 	//cv::cvtColor(grayImage, colorImage, cv::COLOR_GRAY2BGR);
 	colorImage.setFromGrayscalePlanarImages(grayImage, grayImage, grayImage);
-	
 
         #endif
 
+	virginGray = grayImage;
 
        	colorImage.mirror(mirrorV, mirrorH);
-	
 	//colorImg = grayImage;
 
 
@@ -796,14 +803,14 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         
         // ---
         
-        cv::GaussianBlur(maskOut, maskOut, cv::Size(21, 21), 11.0); // expand edges
+        cv::GaussianBlur(maskOut, maskOut, cv::Size(7, 7), 5.0); // expand edges
         
         // ---
         
-        cv::GaussianBlur(mask2, mask2, cv::Size(21, 21), 11.0); // expand edges
+        cv::GaussianBlur(mask2, mask2, cv::Size(7, 7), 5.0); // expand edges
         
         mask2.convertTo(mask2, CV_32FC1);
-        cv::GaussianBlur(mask2, mask2, cv::Size(21, 21), 11.0); // smooth edges
+        cv::GaussianBlur(mask2, mask2, cv::Size(7, 7), 5.0); // smooth edges
         
         // ---
         
@@ -842,7 +849,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
          * This you probably dont need in the final app
          */
         
-        /*
+        
         keyOut3 = cv::Scalar::all(0); // clear
         origFrameMat.copyTo(keyOut3, maskOut); // copy using mask
         
@@ -867,7 +874,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
             cv::merge(ch_img,keyOut4);
         }
         keyOut4.convertTo(keyOut4, CV_8UC3);
-        */
+        
 
 	        //frameDiff.brightnessContrast(brightness, contrast);
         
@@ -895,7 +902,8 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 
 	recordFbo.begin();
 	ofSetColor(255, 255, 255);
-	drawMat(keyOut2, 0, 20,_width/2,_height/2);
+	//drawMat(keyOut2, 0, 20,_width/2,_height/2);
+	drawMat( keyOut2 , 0,0 ,_width,_height);
 	glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 	recordFbo.end();
 	pix.setFromPixels(pixels, _width, _height, 4);
@@ -910,15 +918,15 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 //--------------------------------------------------------------
 void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
 {
-     /*
+     
     // Clear the Pixel object
     //pix.clear();
 
     // Compile the FBO
+	/*
     recordFbo.begin();
     ofSetColor(backgroundColor);
     */
-	
 	/*ofFill();
     ofRect(0, 0, _width, _height);
     for (int i = 0; i < contourFinder.nBlobs; i++)
@@ -931,12 +939,11 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
         }
         ofEndShape(true);
     }*/
-    
 	/*
     ofSetColor(255, 255, 255);
-    //outputImage.draw(0, 0, _width,_height);
+    outputImage.draw(0, 0, _width,_height);
 
-    drawMat(keyOut2, 0, 20,_width/2,_height/2);
+    //drawMat(keyOut2, 0, 20,_width/2,_height/2);
 
     glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     recordFbo.end();
@@ -945,14 +952,16 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
 
     //recordFbo.readToPixels(pix);
     getAllPaths();
-    if (!isSomeoneThere())
-    {
+
+    if(!isSomeoneThere()){
+
         for (int i = 0; i < 10; i++)
         {
             blobPaths[i].bPath.clear();
         }
     }
 	*/
+
 
 }
 //--------------------------------------------------------------
@@ -1179,7 +1188,7 @@ void CV::draw()
     
     ofPushMatrix();
     ofTranslate(x, y);
-    ofDrawBitmapStringHighlight("colorImg",5,15);
+    ofDrawBitmapStringHighlight("colorImage",5,15);
     colorImage.draw(0,20,_width/2,_height/2);
     ofPopMatrix();
     x += _width/2;
@@ -1263,12 +1272,12 @@ void CV::draw()
     ofPopMatrix();
 
     
-    return;
+  //  return;
    
     
     
     
-	/*
+
     virginGray.draw(ofGetWidth() - 2*_width,0,_width,_height);
     ofDrawBitmapStringHighlight("Virgin Gray",ofGetWidth() - 2*_width, 15);
 
@@ -1289,7 +1298,7 @@ void CV::draw()
     ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
     recordFbo.draw(0,_height,_width,_height);
     ofDrawBitmapStringHighlight("Buffer Img",5,255);
-  */
+  
     diffImage.draw(240,0,_width/2,_height/2);
     drawTracking();
     //ofPopMatrix();
