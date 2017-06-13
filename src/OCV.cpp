@@ -406,16 +406,16 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     
 	#ifdef DEBUG
 
-		colorImage.resize(808,608);
-                colorImage.setFromPixels(debugVideo.getPixels(),808,608);
+		colorImage.resize(752,480);
+                colorImage.setFromPixels(debugVideo.getPixels(),752,480);
                 colorImage.resize(_width, _height);
 		grayImage = colorImage;
 		virginGray = grayImage;
 
 	#else
 
-        	grayImage.resize(808,608);
-        	grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+        	grayImage.resize(752,480);
+        	grayImage.setFromPixels(rawImage.GetData(), 752, 480);
         	grayImage.resize(_width, _height);
         	virginGray = grayImage;
 
@@ -694,13 +694,13 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
     if (bNewFrame){
 
         #ifdef DEBUG
-		colorImage.resize(808,608);
-		colorImage.setFromPixels(debugVideo.getPixels(),808,608);
+		colorImage.resize(752,480);
+		colorImage.setFromPixels(debugVideo.getPixels(),752,480);
         	colorImage.resize(_width, _height);
 	#else
 
-        grayImage.resize(808,608);
-        grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+        grayImage.resize(752,480);
+        grayImage.setFromPixels(rawImage.GetData(),752,480);
         grayImage.resize(_width, _height);
         virginGray = grayImage;
 
