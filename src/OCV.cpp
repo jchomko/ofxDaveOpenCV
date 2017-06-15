@@ -13,20 +13,22 @@ using namespace ofxCv;
 
 //--------------------------------------------------------------
 
-void CV::setup( int width,int height, int framerate)
-{
-    // Variables Over
-    _width = width;
-    _height = height;
+void CV::setup( int width,int height, int framerate){
 
-    canDoCalibration = false;
+	//Variables Over
+    	_width = width;
+	_height = height;
 
-    blobPaths.resize(10);
-    // Grabber initiallization
+
+    	canDoCalibration = false;
+	blobPaths.resize(10);
+    	// Grabber initiallization
 
 #ifdef DEBUG
     debugVideo.loadMovie("video.mp4");
+	debugVideo.setLoopState(OF_LOOP_NORMAL);
     debugVideo.play();
+
 #else
 	//Camera Setup
     FC2Version fc2Version;
@@ -156,6 +158,8 @@ void CV::setup( int width,int height, int framerate)
     virginGray.allocate(width,height);
     cout << "Allocating VirginGray Image" << endl;
     colorImage.allocate(width,height);
+
+	cout << "width : " << width << " height: " << height << endl;
 	
 //    kinectGray.allocate(width*2,height*2);
 
@@ -397,16 +401,16 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
 	#ifdef DEBUG
 
-		colorImage.resize(808,608);
-                colorImage.setFromPixels(debugVideo.getPixels(),808,608);
+		colorImage.resize(752,480);
+                colorImage.setFromPixels(debugVideo.getPixels(),752,480);
                 colorImage.resize(_width, _height);
 		grayImage = colorImage;
 		virginGray = grayImage;
 
 	#else
 
-        	grayImage.resize(808,608);
-        	grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+        	grayImage.resize(752,480);
+        	grayImage.setFromPixels(rawImage.GetData(), 752, 480);
         	grayImage.resize(_width, _height);
         	virginGray = grayImage;
 
@@ -647,32 +651,53 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 //void CV::DsubtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold,int blur, int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,float brightness, float contrast,bool erode,bool dilate)
 void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 {
-    double learningRate = -1.0;
+double learningRate = -1.0;
     //  The value between 0 and 1 that indicates how fast the background model is learnt. Negative parameter value makes the algorithm to use some automatically chosen learning rate. 0 means that the background model is not updated at all, 1 means that the background model is completely reinitialized from the last frame.
-    
+
+	/*
     int threshold_min = 200;
-    
+    int pre_blur = 5;
+    int erosion_size = 5;
+    int dilation_size = 32;
+    int const max_elem = 2;
+    int const max_kernel_size = 21;
+    int morph_size = 16; // 32
+    int morph_iterations = 2;
+    int post_blur = 5;
+	*/
+
+    int threshold_min = 200;
     int pre_blur = 1;
-    
-    int erosion_size = 1;
-    int dilation_size = 8;
+    int erosion_size = 3;
+    int dilation_size = 12;
     int const max_elem = 4;
     int const max_kernel_size = 11;
-    
     int morph_size = 4; // 32
-    int morph_iterations = 2;
-    
+    int morph_iterations = 1;
     int post_blur = 1;
-    
+
+
+    int post_erosion_size = 1;
+
+    int expand_size = 1;
+    double expand_sigma1 = 0;
+    int smooth_size = 5;
+    double smooth_sigma1 = 1;
+
+    int w = 320;
+    int h = 240;
+	
+    //_width = 808;
+    //_height = 608;
     // --
     
     bool bNewFrame = false;
-    
+
 #ifdef DEBUG
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
-   error = cam.RetrieveBuffer( &rawImage );
+  	 error = cam.RetrieveBuffer( &rawImage );
         if (error != PGRERROR_OK)
         {
             PrintError( error );
@@ -685,13 +710,13 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
     if (bNewFrame){
 
         #ifdef DEBUG
-		colorImage.resize(808,608);
-		colorImage.setFromPixels(debugVideo.getPixels(),808,608);
+		colorImage.resize(752,480);
+		colorImage.setFromPixels(debugVideo.getPixels(),752,480);
         	colorImage.resize(_width, _height);
 	#else
 
-        grayImage.resize(808,608);
-        grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+        grayImage.resize(752,480);
+        grayImage.setFromPixels(rawImage.GetData(), 752, 480);
         grayImage.resize(_width, _height);
         virginGray = grayImage;
 
@@ -699,24 +724,25 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 	colorImage.setFromGrayscalePlanarImages(grayImage, grayImage, grayImage);
 
         #endif
-
+	grayImage = colorImage;
 	virginGray = grayImage;
+	frameDiff = grayImage;
 
        	colorImage.mirror(mirrorV, mirrorH);
 	//colorImg = grayImage;
 
 
         grayImage = colorImage;
-
-	frameDiff = grayImage;
-
+        
+        
         cv::Mat origFrameMat = cv::Mat(colorImage.getCvImage());
-
+        
+        
         cv::Mat frameMat = cv::Mat(colorImage.getCvImage());
-
-//	 cv::Mat origFrameMat = cv::Mat(grayImage.getCvImage());
-//        cv::Mat frameMat = cv::Mat(grayImage.getCvImage());
-
+        
+        cv::resize(origFrameMat, origFrameMat, cv::Size(w,h));
+        cv::resize(frameMat, frameMat, cv::Size(w,h));
+        
         // pre blur
         cv::medianBlur(frameMat, frameMat, pre_blur);
         
@@ -739,8 +765,8 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         
         // Dilate
         cv::Mat dilation_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
-                                                           cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
-                                                           cv::Point( erosion_size, erosion_size ) );
+                                                           cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
+                                                           cv::Point( dilation_size, dilation_size ) );
         
         
         
@@ -756,14 +782,23 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         cv::morphologyEx( maskOut, maskOut, cv::MORPH_CLOSE, morph_element, cv::Point(-1,-1), morph_iterations, cv::BORDER_CONSTANT );
         
         
+        // post Erode
+        cv::Mat post_erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
+                                                           cv::Size( 2*post_erosion_size + 1, 2*post_erosion_size+1 ),
+                                                           cv::Point( post_erosion_size, post_erosion_size ) );
+        
+        
+        cv::erode(maskOut, maskOut, post_erosion_kernel);
+        
+        
         cv::medianBlur(maskOut, maskOut, post_blur);
         
         
-        cv::Mat mask1 = cv::Mat(_width, _height, CV_8UC1);
+        cv::Mat mask1 = cv::Mat(h, w, CV_8UC1);
         mask1 = cv::Scalar::all(0);
         maskOut.copyTo(mask1);
         
-        cv::Mat mask2 = cv::Mat(_width, _height, CV_8UC1);
+        cv::Mat mask2 = cv::Mat(h, w, CV_8UC1);
         mask2 = cv::Scalar::all(0);
         
         maskOut.copyTo(mask2);
@@ -803,14 +838,14 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         
         // ---
         
-        cv::GaussianBlur(maskOut, maskOut, cv::Size(7, 7), 5.0); // expand edges
+        cv::GaussianBlur(maskOut, maskOut, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
         
         // ---
         
-        cv::GaussianBlur(mask2, mask2, cv::Size(7, 7), 5.0); // expand edges
+        cv::GaussianBlur(mask2, mask2, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
         
         mask2.convertTo(mask2, CV_32FC1);
-        cv::GaussianBlur(mask2, mask2, cv::Size(7, 7), 5.0); // smooth edges
+        cv::GaussianBlur(mask2, mask2, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
         
         // ---
         
@@ -821,10 +856,10 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         /*
          * Prepare keyOut
          */
-        cv::GaussianBlur(mask1, mask1, cv::Size(21, 21), 11.0); // expand edges
+     //   cv::GaussianBlur(mask1, mask1, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
         
         mask1.convertTo(mask1, CV_32FC1);
-        cv::GaussianBlur(mask1, mask1, cv::Size(21, 21), 11.0); // smooth edges
+      //  cv::GaussianBlur(mask1, mask1, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
         
         if (keyOut.rows < origFrameMat.rows || keyOut.cols < origFrameMat.cols) {
             keyOut = cv::Mat(origFrameMat.size(),CV_32FC1);
@@ -842,41 +877,8 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         keyOut2 = whiteMat.mul(mask2);
         keyOut2.convertTo(keyOut2, CV_8UC1);
         cv::subtract(cv::Scalar::all(255),keyOut2,keyOut2);
-	
-        
-        /*
-         * Blending with frame image
-         * This you probably dont need in the final app
-         */
-        
-        
-        keyOut3 = cv::Scalar::all(0); // clear
-        origFrameMat.copyTo(keyOut3, maskOut); // copy using mask
-        
-        // --
-        
-        keyOut4 = cv::Scalar::all(0); // clear
-        keyOut4.convertTo(keyOut4, CV_32FC3);
-        
-        origFrameMat.convertTo(origFrameMat, CV_32FC3, 1.0/255.0);
-        
-        cv::Mat bg = cv::Mat(origFrameMat.size(),CV_32FC3);
-        bg = cv::Scalar(0,0,0);
-        
-        {
-            vector<cv::Mat> ch_img(3);
-            vector<cv::Mat> ch_bg(3);
-            cv::split(origFrameMat,ch_img);
-            cv::split(bg,ch_bg);
-            ch_img[0]=ch_img[0].mul(mask2)+ch_bg[0].mul(1.0-mask2);
-            ch_img[1]=ch_img[1].mul(mask2)+ch_bg[1].mul(1.0-mask2);
-            ch_img[2]=ch_img[2].mul(mask2)+ch_bg[2].mul(1.0-mask2);
-            cv::merge(ch_img,keyOut4);
-        }
-        keyOut4.convertTo(keyOut4, CV_8UC3);
-        
 
-	        //frameDiff.brightnessContrast(brightness, contrast);
+        
         
         //FrameDiff
         frameDiff.absDiff(lastFrame);
@@ -903,13 +905,17 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 	recordFbo.begin();
 	ofSetColor(255, 255, 255);
 	//drawMat(keyOut2, 0, 20,_width/2,_height/2);
-	drawMat( keyOut2 , 0,0 ,_width,_height);
+	drawMat( keyOut , 0,0 ,_width,_height);
 	glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 	recordFbo.end();
+	
+//	pix.resize(808,608);	
 	pix.setFromPixels(pixels, _width, _height, 4);
+//	pix.resize(320, 240);
 
-    
-	}
+	//bool ofPixels_::resize(int dstWidth, int dstHeight, ofInterpolationMethod interpMethod=OF_INTERPOLATE_NEAREST_NEIGHBOR)
+}
+
 }
 
 
