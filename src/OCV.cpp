@@ -399,10 +399,18 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
     if (bNewFrame){
 
+        //vidGrabber.update();
+        bNewFrame = true; //vidGrabber.isFrameNew();
+
+    #endif
+
+    if (bNewFrame){
+
+    
 	#ifdef DEBUG
 
-		colorImage.resize(808,608);
-                colorImage.setFromPixels(debugVideo.getPixels(),808,608);
+		colorImage.resize(752,480);
+                colorImage.setFromPixels(debugVideo.getPixels(),752,480);
                 colorImage.resize(_width, _height);
 		grayImage = colorImage;
 		virginGray = grayImage;
@@ -422,9 +430,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         // We get back the warped coordinates - scaled to our camera size
 	ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
 	// Lets warp with those cool coordinates!!!!!
-        grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
+    grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
 	// Lets calculate the openCV matrix for our coordWarping
-        coordWarp.calculateMatrix(warpedPts, dstPts);
+    coordWarp.calculateMatrix(warpedPts, dstPts);
 	//colorImg.brightnessContrast(brightness, contrast);
         //colorImg.blurGaussian(gaussBlur);
         //grayImage = colorImg;
@@ -434,7 +442,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 //    crop = gray_mat(crop_roi).clone();
 //    grayImage = crop;
 
-        grayImage.blurMedian(medianBlur);
+    grayImage.blurMedian(medianBlur);
 
     frameDiff = grayImage;
     diffImage = grayImage;
@@ -452,8 +460,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
     diffImage += cleanFrameDiff;
 
-   diffImage.brightnessContrast(brightness, contrast);
-   diffImage.blur(blur);
+    diffImage.brightnessContrast(brightness, contrast);
+    diffImage.blur(blur);
 
     if (erode){
        diffImage.erode();
@@ -712,8 +720,8 @@ double learningRate = -1.0;
     if (bNewFrame){
 
         #ifdef DEBUG
-		colorImage.resize(808,608);
-		colorImage.setFromPixels(debugVideo.getPixels(),808,608);
+		colorImage.resize(752,480);
+		colorImage.setFromPixels(debugVideo.getPixels(),752,480);
         	colorImage.resize(_width, _height);
 	#else
 
