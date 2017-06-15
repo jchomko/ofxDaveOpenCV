@@ -401,20 +401,22 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
 	#ifdef DEBUG
 
-		colorImage.resize(752,480);
-                colorImage.setFromPixels(debugVideo.getPixels(),752,480);
+		colorImage.resize(808,608);
+                colorImage.setFromPixels(debugVideo.getPixels(),808,608);
                 colorImage.resize(_width, _height);
 		grayImage = colorImage;
 		virginGray = grayImage;
 
 	#else
 
-        	grayImage.resize(752,480);
-        	grayImage.setFromPixels(rawImage.GetData(), 752, 480);
+        	grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
+        	grayImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows());
         	grayImage.resize(_width, _height);
         	virginGray = grayImage;
 
 	#endif
+
+	cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
 
 	//Warping
         // We get back the warped coordinates - scaled to our camera size
@@ -710,16 +712,19 @@ double learningRate = -1.0;
     if (bNewFrame){
 
         #ifdef DEBUG
-		colorImage.resize(752,480);
-		colorImage.setFromPixels(debugVideo.getPixels(),752,480);
+		colorImage.resize(808,608);
+		colorImage.setFromPixels(debugVideo.getPixels(),808,608);
         	colorImage.resize(_width, _height);
 	#else
 
-        grayImage.resize(752,480);
-        grayImage.setFromPixels(rawImage.GetData(), 752, 480);
+        grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
+        grayImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows());
         grayImage.resize(_width, _height);
         virginGray = grayImage;
 
+       cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
+
+         
 	//cv::cvtColor(grayImage, colorImage, cv::COLOR_GRAY2BGR);
 	colorImage.setFromGrayscalePlanarImages(grayImage, grayImage, grayImage);
 
