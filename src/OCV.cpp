@@ -25,7 +25,7 @@ void CV::setup( int width,int height, int framerate){
     	// Grabber initiallization
 
 #ifdef DEBUG
-    debugVideo.loadMovie("video.mp4");
+    debugVideo.loadMovie("DebugTrim.mp4");
 	debugVideo.setLoopState(OF_LOOP_NORMAL);
     debugVideo.play();
 
@@ -214,7 +214,56 @@ void CV::setup( int width,int height, int framerate){
     //pMOG2 = new cv::BackgroundSubtractorMOG2(); //MOG2 approach
     mog.initialize(cvSize(_width, _height), CV_8UC3); // (100, 16, false);
 
+    //Dawid Variables to put into gui
+    threshold_min = 200;
+    pre_blur = 1;
+    erosion_size = 3;
+    dilation_size = 8;
+    max_elem = 4;
+    max_kernel_size = 11;
+    morph_size = 4; // 32
+    morph_iterations = 1;
+    post_blur = 1;
+
+
+    post_erosion_size = 1;
+    expand_size = 1;
+    expand_sigma1 = 0;
+    smooth_size = 5;
+    smooth_sigma1 = 1;
+
+    learningRate = -1;
+    
+    setupCVGui();
+    //gui->toggleVisible();
 }
+
+void CV::setupCVGui(){
+
+    gui = new ofxUICanvas(ofGetWidth()/2-200,200,200,600);
+    gui->setColorBack(ofColor::black);
+    gui->addWidgetDown(new ofxUINumberDialer(0, 255, 200, 0, "threshold_min", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "pre_blur", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 3, 0, "erosion_size", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 8, 0, "dilation_size", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 4, 0, "max_elem", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 11, 0, "max_kernel_size", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 4, 0, "morph_size", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "morph_iterations", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "post_blur", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "post_erosion_size", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "expand_size", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 5, 0, "expand_sigma1", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 5, 0, "smooth_size", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "smooth_sigma1", OFX_UI_FONT_MEDIUM));
+    gui->addWidgetDown(new ofxUINumberDialer(-1.00f, 1.00f, 0.01f, 1, "learningRate", OFX_UI_FONT_MEDIUM));
+        
+
+    gui->loadSettings("GUI/CVSettings.xml");
+    gui->setVisible(true);
+
+}
+
 //--------------------------------------------------------------
 void CV::setTrackingBoundaries(int x, int y, int w, int h)
 {
@@ -416,15 +465,15 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
 	#endif
 
-	cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
+	//cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
 
 	//Warping
         // We get back the warped coordinates - scaled to our camera size
 	ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
 	// Lets warp with those cool coordinates!!!!!
-        grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
+    grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
 	// Lets calculate the openCV matrix for our coordWarping
-        coordWarp.calculateMatrix(warpedPts, dstPts);
+    coordWarp.calculateMatrix(warpedPts, dstPts);
 	//colorImg.brightnessContrast(brightness, contrast);
         //colorImg.blurGaussian(gaussBlur);
         //grayImage = colorImg;
@@ -434,7 +483,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 //    crop = gray_mat(crop_roi).clone();
 //    grayImage = crop;
 
-        grayImage.blurMedian(medianBlur);
+    grayImage.blurMedian(medianBlur);
 
     frameDiff = grayImage;
     diffImage = grayImage;
@@ -466,7 +515,6 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         diffImage = grayImage;	
 
         //frameDiff.brightnessContrast(brightness, contrast);
-        
         //FrameDiff
         frameDiff.absDiff(lastFrame);
         frameDiff.threshold(threshold);
@@ -506,8 +554,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
         diffImage.blur(blur);
 
-        diffImage.adaptiveThreshold(threshold);
-        
+       // diffImage.adaptiveThreshold(threshold);
+        diffImage.threshold(threshold);
+
         //diffImage.adaptiveThreshold(blur);
         diffImage.blur(blur);
 
@@ -539,7 +588,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
 
 
-        lastFrame = colorImage;
+        lastFrame = grayImage;
         pastImages.push_back(lastFrame);
 
         //outputImage.setFromPixels(diffImage.getPixels())
@@ -573,7 +622,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
 	lastFrame.blurMedian(medianBlur);
 
-        outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
+    outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
+    
     }
 
     //On Exit
@@ -621,7 +671,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 	// Compile the FBO
 	recordFbo.begin();
 //	ofSetColor(255);
-	/*
+	
 	ofFill();
 	ofRect(0, 0, _width, _height);
 	for (int i = 0; i < contourFinder.nBlobs; i++)
@@ -635,14 +685,15 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         	}
         	ofEndShape(true);
    	 }
-	*/
+	
 	// ofSetColor(255, 255, 255);
-    	//outputImage.draw(0, 0, _width,_height);
-
-	outputImage.draw(0, 0, _width,_height);
+    //outputImage.draw(0, 0, _width,_height);
+    //outputImage.draw(0, 0, _width,_height);
 	glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-    	recordFbo.end();
-	pix.setFromPixels(pixels, _width, _height, 4);
+    
+    recordFbo.end();
+	
+    pix.setFromPixels(pixels, _width, _height, 4);
 
 }
 
@@ -653,7 +704,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 //void CV::DsubtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold,int blur, int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,float brightness, float contrast,bool erode,bool dilate)
 void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 {
-double learningRate = -1.0;
+    double learningRate = -1.0;
     //  The value between 0 and 1 that indicates how fast the background model is learnt. Negative parameter value makes the algorithm to use some automatically chosen learning rate. 0 means that the background model is not updated at all, 1 means that the background model is completely reinitialized from the last frame.
 
 	/*
@@ -668,23 +719,22 @@ double learningRate = -1.0;
     int post_blur = 5;
 	*/
 
-    int threshold_min = 200;
-    int pre_blur = 1;
-    int erosion_size = 3;
-    int dilation_size = 12;
-    int const max_elem = 4;
-    int const max_kernel_size = 11;
-    int morph_size = 4; // 32
-    int morph_iterations = 1;
-    int post_blur = 1;
+    // int threshold_min = 200;
+    // int pre_blur = 1;
+    // int erosion_size = 3;
+    // int dilation_size = 8;
+    // int const max_elem = 4;
+    // int const max_kernel_size = 11;
+    // int morph_size = 4; // 32
+    // int morph_iterations = 1;
+    // int post_blur = 1;
 
 
-    int post_erosion_size = 1;
-
-    int expand_size = 1;
-    double expand_sigma1 = 0;
-    int smooth_size = 5;
-    double smooth_sigma1 = 1;
+    // int post_erosion_size = 1;
+    // int expand_size = 1;
+    // double expand_sigma1 = 0;
+    // int smooth_size = 5;
+    // double smooth_sigma1 = 1;
 
     int w = 320;
     int h = 240;
@@ -696,17 +746,19 @@ double learningRate = -1.0;
     bool bNewFrame = false;
 
 #ifdef DEBUG
+    
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
+
 #else
   	 error = cam.RetrieveBuffer( &rawImage );
         if (error != PGRERROR_OK)
         {
             PrintError( error );
         }
-
     //vidGrabber.update();
     bNewFrame = true; //vidGrabber.isFrameNew();
+
 #endif
 
     if (bNewFrame){
@@ -714,35 +766,30 @@ double learningRate = -1.0;
         #ifdef DEBUG
 		colorImage.resize(808,608);
 		colorImage.setFromPixels(debugVideo.getPixels(),808,608);
-        	colorImage.resize(_width, _height);
-	#else
+        colorImage.resize(_width, _height);
+	   
+    #else
 
         grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
         grayImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows());
         grayImage.resize(_width, _height);
         virginGray = grayImage;
 
-       cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
+        //cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
+        //cv::cvtColor(grayImage, colorImage, cv::COLOR_GRAY2BGR);
+	    colorImage.setFromGrayscalePlanarImages(grayImage, grayImage, grayImage);
 
-         
-	//cv::cvtColor(grayImage, colorImage, cv::COLOR_GRAY2BGR);
-	colorImage.setFromGrayscalePlanarImages(grayImage, grayImage, grayImage);
-
-        #endif
-	grayImage = colorImage;
-	virginGray = grayImage;
-	frameDiff = grayImage;
-
-       	colorImage.mirror(mirrorV, mirrorH);
-	//colorImg = grayImage;
-
-
+    #endif
+    	
+        grayImage = colorImage;
+    	virginGray = grayImage;
+    	frameDiff = grayImage;
+        colorImage.mirror(mirrorV, mirrorH);
+	     //colorImg = grayImage;
         grayImage = colorImage;
         
         
         cv::Mat origFrameMat = cv::Mat(colorImage.getCvImage());
-        
-        
         cv::Mat frameMat = cv::Mat(colorImage.getCvImage());
         
         cv::resize(origFrameMat, origFrameMat, cv::Size(w,h));
@@ -757,46 +804,47 @@ double learningRate = -1.0;
         fgMaskMOG2.copyTo(maskOut);
         
         cv::threshold(maskOut, maskOut, threshold_min, 255, cv::THRESH_BINARY); // value around 200 removes shadows
+        
         cv::threshold(maskOut, maskOut, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU); // denoise binary image
         
         
         // Erode
-        cv::Mat erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
-                                                    cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
-                                                    cv::Point( erosion_size, erosion_size ) );
+        // cv::Mat erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
+        //                                             cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
+        //                                             cv::Point( erosion_size, erosion_size ) );
 
         
-        cv::erode(maskOut, maskOut, erosion_kernel);
+        // cv::erode(maskOut, maskOut, erosion_kernel);
         
         // Dilate
-        cv::Mat dilation_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
-                                                           cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
-                                                           cv::Point( dilation_size, dilation_size ) );
+        // cv::Mat dilation_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
+        //                                                    cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
+        //                                                    cv::Point( dilation_size, dilation_size ) );
         
         
         
         
-        cv::dilate(maskOut, maskOut, dilation_kernel);
+        // cv::dilate(maskOut, maskOut, dilation_kernel);
         
         // Morphology
-        cv::Mat morph_element = getStructuringElement( cv::MORPH_ELLIPSE,
-                                                      cv::Size( 2*morph_size + 1, 2*morph_size+1 ),
-                                                      cv::Point( morph_size, morph_size ) );
+        // cv::Mat morph_element = getStructuringElement( cv::MORPH_ELLIPSE,
+        //                                               cv::Size( 2*morph_size + 1, 2*morph_size+1 ),
+        //                                               cv::Point( morph_size, morph_size ) );
 
         
-        cv::morphologyEx( maskOut, maskOut, cv::MORPH_CLOSE, morph_element, cv::Point(-1,-1), morph_iterations, cv::BORDER_CONSTANT );
+        // cv::morphologyEx( maskOut, maskOut, cv::MORPH_CLOSE, morph_element, cv::Point(-1,-1), morph_iterations, cv::BORDER_CONSTANT );
         
         
         // post Erode
-        cv::Mat post_erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
-                                                           cv::Size( 2*post_erosion_size + 1, 2*post_erosion_size+1 ),
-                                                           cv::Point( post_erosion_size, post_erosion_size ) );
+        // cv::Mat post_erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
+        //                                                    cv::Size( 2*post_erosion_size + 1, 2*post_erosion_size+1 ),
+        //                                                    cv::Point( post_erosion_size, post_erosion_size ) );
         
         
-        cv::erode(maskOut, maskOut, post_erosion_kernel);
+        // cv::erode(maskOut, maskOut, post_erosion_kernel);
         
         
-        cv::medianBlur(maskOut, maskOut, post_blur);
+        // cv::medianBlur(maskOut, maskOut, post_blur);
         
         
         cv::Mat mask1 = cv::Mat(h, w, CV_8UC1);
@@ -893,32 +941,33 @@ double learningRate = -1.0;
         //contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
         contourFinder.findContours(frameDiff, 300, 9999999, 1,false,false);
 	
-	lastFrame = grayImage;
+	    lastFrame = grayImage;
 	 
-
-	if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
-           present = false;
-	}
-
-	if(contourFinder.nBlobs > 0){
-		backgroundTimer = ofGetElapsedTimeMillis();
-        	//While Present
-        	present = true;
-        	absenceTimer = ofGetElapsedTimeMillis() + 5000;
+        if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
+               present = false;
     	}
 
-	recordFbo.begin();
-	ofSetColor(255, 255, 255);
-	//drawMat(keyOut2, 0, 20,_width/2,_height/2);
-	drawMat( keyOut , 0,0 ,_width,_height);
-	glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-	recordFbo.end();
-	
-//	pix.resize(808,608);	
-	pix.setFromPixels(pixels, _width, _height, 4);
-//	pix.resize(320, 240);
+    	if(contourFinder.nBlobs > 0){
+    		backgroundTimer = ofGetElapsedTimeMillis();
+            	//While Present
+            	present = true;
+            	absenceTimer = ofGetElapsedTimeMillis() + 5000;
+        	}
 
-	//bool ofPixels_::resize(int dstWidth, int dstHeight, ofInterpolationMethod interpMethod=OF_INTERPOLATE_NEAREST_NEIGHBOR)
+    	recordFbo.begin();
+    	
+           ofSetColor(255, 255, 255);
+    	   //drawMat(keyOut2, 0, 20,_width/2,_height/2);
+    	   drawMat( maskOut , 0,0 ,_width,_height);
+    	   glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    	
+        recordFbo.end();
+    	
+        //	pix.resize(808,608);	
+    	pix.setFromPixels(pixels, _width, _height, 4);
+        //	pix.resize(320, 240);
+
+	   //bool ofPixels_::resize(int dstWidth, int dstHeight, ofInterpolationMethod interpMethod=OF_INTERPOLATE_NEAREST_NEIGHBOR)
 }
 
 }
@@ -1384,4 +1433,72 @@ void CV::PrintError (Error error){
 void CV::exit()
 {
 	//gui.saveToFile("camera_settings.xml");
+    gui->saveSettings("GUI/CVSettings.xml");
+    //delete gui;
+    
+}
+
+
+void CV::guiEvent(ofxUIEventArgs &e)
+{
+    if (e.getName() == "threshold_min")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        threshold_min = toggle->getValue();
+    }else if (e.getName() == "pre_blur")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        pre_blur = toggle->getValue();
+    }else if (e.getName() == "erosion_size")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        erosion_size = toggle->getValue();
+    }else if (e.getName() == "dilation_size")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        dilation_size = toggle->getValue();
+    }else if (e.getName() == "max_kernel_size")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        max_kernel_size = toggle->getValue();
+    }else if (e.getName() == "morph_size")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        morph_size = toggle->getValue();
+    }else if (e.getName() == "morph_iterations")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        morph_iterations = toggle->getValue();
+    }else if (e.getName() == "post_blur")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        post_blur = toggle->getValue();
+    }else if (e.getName() == "post_erosion_size")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        post_erosion_size = toggle->getValue();
+    }else if (e.getName() == "expand_size")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        expand_size = toggle->getValue();
+    }else if (e.getName() == "expand_sigma1")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        expand_sigma1 = toggle->getValue();
+    }else if (e.getName() == "smooth_size")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        smooth_size = toggle->getValue();
+    }else if (e.getName() == "smooth_sigma1")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        smooth_sigma1 = toggle->getValue();
+    }else if (e.getName() == "learningRate")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        learningRate = toggle->getValue();
+    }
+
+
+
 }

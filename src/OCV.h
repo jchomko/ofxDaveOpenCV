@@ -29,9 +29,12 @@
 #include <opencv2/video/video.hpp>
 #include <opencv2/video/background_segm.hpp>
 
+#include "ofxUI.h"
+
+
 using namespace ofxCv;
 
-//#define DEBUG
+#define DEBUG
 
 using namespace FlyCapture2;
 
@@ -118,6 +121,10 @@ public:
 
 private:
 
+    ofxUICanvas *gui;
+    void guiEvent(ofxUIEventArgs &e);
+    void setupCVGui();
+
     ofxXmlSettings XML;
     ofPoint srcPts[4];
     ofPoint dstPts[4];
@@ -183,4 +190,22 @@ private:
     unsigned char * outpix;
     unsigned char * pixels;
 
+    //Dawid CV Variables
+    int threshold_min;
+    int pre_blur;
+    int erosion_size;
+    int dilation_size;
+    int max_elem;
+    int max_kernel_size;
+    int morph_size; // 32
+    int morph_iterations;
+    int post_blur;
+
+
+    int post_erosion_size;
+    int expand_size;
+    double expand_sigma1;
+    int smooth_size;
+    double smooth_sigma1;
+    double learningRate;
 };
