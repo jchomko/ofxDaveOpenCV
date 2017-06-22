@@ -20,10 +20,12 @@ void CV::setup( int width,int height, int framerate)
     // Grabber initiallization
 
 #ifdef DEBUG
-
-    debugVideo.loadMovie("Debug/IRCapture.mp4");
+    cout << "loading debug video" << endl;
+    debugVideo.loadMovie("DebugTrim.mp4");
+     debugVideo.setLoopState(OF_LOOP_NORMAL);
     debugVideo.play();
 #else
+    cout << "setting up camera" << endl;
 	//Camera Setup
     FC2Version fc2Version;
 
@@ -35,7 +37,7 @@ void CV::setup( int width,int height, int framerate)
     timeStamp <<"Application build date: " << __DATE__ << " " << __TIME__;
     cout << timeStamp.str() << endl << endl;
 
-     BusManager busMgr;
+    BusManager busMgr;
     unsigned int numCameras;
     error = busMgr.GetNumOfCameras(&numCameras);
     if (error != PGRERROR_OK)
@@ -594,24 +596,47 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 }
 void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
 {
-  bool bNewFrame = false;
 
-  error = cam.RetrieveBuffer( &rawImage );
-  if (error != PGRERROR_OK){
-          PrintError( error );
-          bNewFrame = false;
-      }else{
-        bNewFrame = true;
-  }
+bool bNewFrame = false;
+
+#ifdef DEBUG
+
+    debugVideo.update();
+    bNewFrame = debugVideo.isFrameNew();
+
+#else
+
+   error = cam.RetrieveBuffer( &rawImage );
+        if (error != PGRERROR_OK)
+        {
+            PrintError( error );
+                bNewFrame = false; //vidGrabber.isFrameNew();
+
+        }
+
+    //vidGrabber.update();
+    bNewFrame = true; //vidGrabber.isFrameNew();
+
+#endif
+
 
   if (bNewFrame){
-      grayImage.resize(808,608);
-      grayImage.setFromPixels(rawImage.GetData(), 808, 608);
-      grayImage.resize(_width, _height);
-      virginGray = grayImage;
 
-      grayImage.blur(blur);
+        #ifdef DEBUG
+            colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
+            grayImage = colorImg;
+            virginGray = grayImage;
 
+        #else
+
+        grayImage.resize(808,608);
+        grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+        grayImage.resize(_width, _height);
+        virginGray = grayImage;
+
+      #endif
+       
+       grayImage.blur(blur);
        grayImage.absDiff(grayBg);
        grayImage.dilate();
        grayImage.brightnessContrast(brightness, contrast);
