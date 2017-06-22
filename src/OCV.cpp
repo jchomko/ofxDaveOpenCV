@@ -213,21 +213,25 @@ void CV::setTrackingBoundaries(int x, int y, int w, int h)
 }
 //--------------------------------------------------------------
 void CV::releaseCamera()
-{
-    error = cam.StopCapture();
-    if (error != PGRERROR_OK)
-    {
-        PrintError( error );
+{   
+    #ifndef DEBUG
 
-    }
+        error = cam.StopCapture();
+        if (error != PGRERROR_OK)
+        {
+            PrintError( error );
 
-    // Disconnect the camera
-    error = cam.Disconnect();
-    if (error != PGRERROR_OK)
-    {
-        PrintError( error );
+        }
 
-    }
+        // Disconnect the camera
+        error = cam.Disconnect();
+        if (error != PGRERROR_OK)
+        {
+            PrintError( error );
+
+        }
+
+    #endif
 
     //kinect.close();
 }
@@ -600,7 +604,7 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 bool bNewFrame = false;
 
 #ifdef DEBUG
-
+   
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 
@@ -623,16 +627,19 @@ bool bNewFrame = false;
   if (bNewFrame){
 
         #ifdef DEBUG
-            colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
+
+            colorImg.resize(808,608);
+            colorImg.setFromPixels(debugVideo.getPixels(),debugVideo.getWidth(),debugVideo.getHeight());
+            colorImg.resize(_width, _height);
             grayImage = colorImg;
             virginGray = grayImage;
 
         #else
 
-        grayImage.resize(808,608);
-        grayImage.setFromPixels(rawImage.GetData(), 808, 608);
-        grayImage.resize(_width, _height);
-        virginGray = grayImage;
+            grayImage.resize(808,608);
+            grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+            grayImage.resize(_width, _height);
+            virginGray = grayImage;
 
       #endif
        
@@ -642,9 +649,10 @@ bool bNewFrame = false;
        grayImage.brightnessContrast(brightness, contrast);
        grayImage.blur(blur);
        grayImage.threshold(imgThreshold);
+
        imagingContourFinder.findContours(grayImage, 100, 999999, 4, false);
 
-	      frameDiff = virginGray;
+	   frameDiff = virginGray;
        frameDiff.absDiff(lastFrame);
        frameDiff.threshold(moveThreshold);
 
@@ -680,7 +688,7 @@ bool bNewFrame = false;
                imgBlobPaths[i].draw(0, 0);
            }
        pathFbo.end();
-	lastFrame = virginGray;
+	   lastFrame = virginGray;
 
        ofPixels output;
        pathFbo.readToPixels(output);
