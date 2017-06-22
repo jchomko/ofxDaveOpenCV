@@ -159,6 +159,9 @@ void CV::setup( int width,int height, int framerate)
     colorImg.allocate(808,608);
     cout << "Allocating ColorImg" << endl;
 //    kinectGray.allocate(width*2,height*2);
+    
+    fgrayImage.allocate(width,height);
+    //flastGrayImage.allocate(width,height);
 
     invDiffImage.allocate(width,height);
     cleanFrameDiff.allocate(width,height);
@@ -649,20 +652,23 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
   if (bNewFrame){
     
-    #ifdef DEBUG
+    // #ifdef DEBUG
     
-        colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
-        grayImage = colorImg;
-        cout << "newframe" << endl;
+    //     colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
+    //     grayImage = colorImg;
+    //     fgrayImage = grayImage;
+
     
-    #else
-          grayImage.resize(808,608);
-          grayImage.setFromPixels(rawImage.GetData(), 808, 608);
-          grayImage.resize(_width, _height);
+    // #else
+    //       grayImage.resize(808,608);
+    //       grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+    //       grayImage.resize(_width, _height);
+    //       fgrayImage = grayImage;
 
-    #endif
+    // #endif
 
-      virginGray = grayImage;
+
+    //   virginGray = grayImage;
 
 
         #ifdef DEBUG
@@ -671,32 +677,46 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
             colorImg.setFromPixels(debugVideo.getPixels(),debugVideo.getWidth(),debugVideo.getHeight());
             colorImg.resize(_width, _height);
             grayImage = colorImg;
-            virginGray = grayImage;
+            fgrayImage = grayImage;
 
         #else
 
             grayImage.resize(808,608);
             grayImage.setFromPixels(rawImage.GetData(), 808, 608);
             grayImage.resize(_width, _height);
-            virginGray = grayImage;
+            fgrayImage = grayImage;
 
       #endif
        
-       grayImage.blur(blur);
-       grayImage.absDiff(grayBg);
-       grayImage.dilate();
-       grayImage.brightnessContrast(brightness, contrast);
-       grayImage.blur(blur);
-       grayImage.threshold(imgThreshold);
+        virginGray = grayImage;
 
-       imagingContourFinder.findContours(grayImage, 100, 999999, 4, false);
-
-	   frameDiff = virginGray;
+       frameDiff = virginGray;
        frameDiff.absDiff(lastFrame);
        frameDiff.threshold(moveThreshold);
 
        contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum, fillHoles, useApproximation);
 
+       fgrayImage.addWeighted(lastFrame,0.75f);
+       
+       grayImage = fgrayImage;
+
+       
+       grayImage.blur(blur);
+       grayImage += frameDiff;
+       grayImage.absDiff(grayBg);
+
+       if(dilate)
+       grayImage.dilate();
+
+       grayImage.brightnessContrast(brightness, contrast);
+       
+       grayImage.blur(blur);
+       
+       grayImage.threshold(imgThreshold);
+
+       imagingContourFinder.findContours(grayImage, 100, 999999, 10, false,true);
+
+	   
        //Draw Filled Contours -- 
        //Only draw if there is something to draw
        if(imagingContourFinder.nBlobs > 0){
@@ -708,7 +728,8 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
                for(int p = 0; p < imagingContourFinder.blobs[b].pts.size(); p ++){
                    imgBlobPath.curveTo(imagingContourFinder.blobs[b].pts[p]);
                }
-
+               
+               imgBlobPath.simplify(0.3);
                imgBlobPath.setFilled(true);
                imgBlobPath.setFillColor(ofColor(0));
                imgBlobPaths.push_back(imgBlobPath);
@@ -725,11 +746,13 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
            ofBackground(255);
 
            for(int i = 0; i < imgBlobPaths.size(); i ++){
+
                imgBlobPaths[i].draw(0, 0);
            }
        pathFbo.end();
 
 	   lastFrame = virginGray;
+       // flastGrayImage = virginGray;
 
 
        ofPixels output;

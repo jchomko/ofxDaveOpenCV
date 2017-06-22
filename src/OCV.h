@@ -18,11 +18,7 @@
 
 //#include "ofxMacamPs3Eye.h"
 
-<<<<<<< HEAD
 #define DEBUG
-=======
-// #define DEBUG
->>>>>>> 6f9521197166dee6d886bbb11192be44e007966f
 
 using namespace FlyCapture2;
 
@@ -153,6 +149,9 @@ private:
     ofxCvGrayscaleImage	    cleanFrameDiff;
     vector<ofxCvGrayscaleImage> pastImages;
     ofImage             outputImage;
+    ofxCvFloatImage     fgrayImage;
+    //ofxCvFloatImage     flastGrayImage;
+
 
 
     ofTexture           outputTex;
