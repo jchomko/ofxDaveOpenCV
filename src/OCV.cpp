@@ -1446,7 +1446,7 @@ void CV::PrintError (Error error){
 void CV::exit()
 {
     //gui.saveToFile("camera_settings.xml");
-   // gui->saveSettings("GUI/CVSettings.xml");
+    ggui->saveSettings("GUI/CVSettings.xml");
     //delete gui;
     
 }
