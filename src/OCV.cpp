@@ -20,10 +20,13 @@ void CV::setup( int width,int height, int framerate)
     // Grabber initiallization
 
 #ifdef DEBUG
+
     cout << "loading debug video" << endl;
     debugVideo.loadMovie("DebugTrim.mp4");
      debugVideo.setLoopState(OF_LOOP_NORMAL);
+
     debugVideo.play();
+
 #else
     cout << "setting up camera" << endl;
 	//Camera Setup
@@ -153,6 +156,8 @@ void CV::setup( int width,int height, int framerate)
     cout << "Allocating Thresh Image" << endl;
     virginGray.allocate(width,height);
     cout << "Allocating VirginGray Image" << endl;
+    colorImg.allocate(808,608);
+    cout << "Allocating ColorImg" << endl;
 //    kinectGray.allocate(width*2,height*2);
 
     invDiffImage.allocate(width,height);
@@ -462,26 +467,40 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 {
     bool bNewFrame = false;
 
-#ifdef DEBUG
-    debugVideo.update();
-    bNewFrame = debugVideo.isFrameNew();
-#else
-   error = cam.RetrieveBuffer( &rawImage );
-        if (error != PGRERROR_OK)
-        {
-            PrintError( error );
-        }
+    #ifdef DEBUG
 
-    //vidGrabber.update();
-    bNewFrame = true; //vidGrabber.isFrameNew();
-#endif
+        debugVideo.update();
 
-    if (bNewFrame)
-    {
+        bNewFrame = debugVideo.isFrameNew();
 
+    #else
+       
+       error = cam.RetrieveBuffer( &rawImage );
+
+            if (error != PGRERROR_OK)
+            {
+                PrintError( error );
+            }
+
+        //vidGrabber.update();
+        bNewFrame = true; //vidGrabber.isFrameNew();
+
+    #endif
+
+    if (bNewFrame){
+
+    
 	#ifdef DEBUG
-        	colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
-	#else
+
+            colorImg.resize(808,608);
+        	colorImg.setFromPixels(debugVideo.getPixels(),808, 608);
+            colorImg.resize(_width, _height);
+            
+            grayImage = colorImg;
+            virginGray = grayImage;
+
+	
+    #else
 
         grayImage.resize(808,608);
         grayImage.setFromPixels(rawImage.GetData(), 808, 608);
@@ -494,9 +513,9 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         // We get back the warped coordinates - scaled to our camera size
 	ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
 	// Lets warp with those cool coordinates!!!!!
-        grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
+    grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
 	// Lets calculate the openCV matrix for our coordWarping
-        coordWarp.calculateMatrix(warpedPts, dstPts);
+    coordWarp.calculateMatrix(warpedPts, dstPts);
 	//colorImg.brightnessContrast(brightness, contrast);
         //colorImg.blurGaussian(gaussBlur);
         //grayImage = colorImg;
@@ -506,7 +525,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 //    crop = gray_mat(crop_roi).clone();
 //    grayImage = crop;
 
-        grayImage.blurMedian(medianBlur);
+    grayImage.blurMedian(medianBlur);
 
     frameDiff = grayImage;
     diffImage = grayImage;
@@ -524,8 +543,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
     diffImage += cleanFrameDiff;
 
-   diffImage.brightnessContrast(brightness, contrast);
-   diffImage.blur(blur);
+    diffImage.brightnessContrast(brightness, contrast);
+    diffImage.blur(blur);
 
     if (erode){
        diffImage.erode();
@@ -550,7 +569,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
         lastFrame = virginGray;
 
-	       lastFrame.blurMedian(medianBlur);
+	    lastFrame.blurMedian(medianBlur);
 
         outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
     }
@@ -598,33 +617,53 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     }
 
 }
+
+//point grey subtraction loop 
 void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
 {
 
-bool bNewFrame = false;
 
-#ifdef DEBUG
-   
-    debugVideo.update();
-    bNewFrame = debugVideo.isFrameNew();
+  bool bNewFrame = false;
 
-#else
-
-   error = cam.RetrieveBuffer( &rawImage );
-        if (error != PGRERROR_OK)
-        {
+  #ifdef DEBUG
+        
+        debugVideo.update();
+        bNewFrame = debugVideo.isFrameNew();
+        
+    #else  
+        
+        error = cam.RetrieveBuffer( &rawImage );
+        
+        if (error != PGRERROR_OK){
+            
             PrintError( error );
-                bNewFrame = false; //vidGrabber.isFrameNew();
-
+            bNewFrame = false;
+          
+          }else{
+            
+            bNewFrame = true;
+        
         }
-
-    //vidGrabber.update();
-    bNewFrame = true; //vidGrabber.isFrameNew();
-
-#endif
-
+    
+  #endif
 
   if (bNewFrame){
+    
+    #ifdef DEBUG
+    
+        colorImg.setFromPixels(debugVideo.getPixels(),_width,_height);
+        grayImage = colorImg;
+        cout << "newframe" << endl;
+    
+    #else
+          grayImage.resize(808,608);
+          grayImage.setFromPixels(rawImage.GetData(), 808, 608);
+          grayImage.resize(_width, _height);
+
+    #endif
+
+      virginGray = grayImage;
+
 
         #ifdef DEBUG
 
@@ -680,6 +719,7 @@ bool bNewFrame = false;
             //clear blob paths
            //imgBlobPaths.clear();
        }
+
        pathFbo.begin();
            ofClear(255);
            ofBackground(255);
@@ -688,7 +728,9 @@ bool bNewFrame = false;
                imgBlobPaths[i].draw(0, 0);
            }
        pathFbo.end();
+
 	   lastFrame = virginGray;
+
 
        ofPixels output;
        pathFbo.readToPixels(output);
@@ -742,6 +784,7 @@ bool bNewFrame = false;
   }
 
 }
+
 //--------------------------------------------------------------
 void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
 {
