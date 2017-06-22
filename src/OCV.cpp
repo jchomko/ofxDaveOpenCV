@@ -230,7 +230,7 @@ void CV::setup( int width,int height, int framerate){
     post_erosion_size = 1;
     expand_size = 1;
     expand_sigma1 = 0;
-    smooth_size = 5;
+    smooth_size = 1;
     smooth_sigma1 = 1;
 
     learningRate = -1;
@@ -924,7 +924,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         cv::GaussianBlur(mask1, mask1, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
         
         mask1.convertTo(mask1, CV_32FC1);
-       cv::GaussianBlur(mask1, mask1, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
+        cv::GaussianBlur(mask1, mask1, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
         
         if (keyOut.rows < origFrameMat.rows || keyOut.cols < origFrameMat.cols) {
             keyOut = cv::Mat(origFrameMat.size(),CV_32FC1);
@@ -1470,7 +1470,7 @@ void CV::guiEventCV(ofxUIEventArgs &e)
     }else if (e.getName() == "pre_blur")
     {
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
-        pre_blur = toggle->getValue();
+       
          int s = toggle->getValue();
         if(s%2>0){
             pre_blur = s;
@@ -1498,6 +1498,7 @@ void CV::guiEventCV(ofxUIEventArgs &e)
     }else if (e.getName() == "post_blur")
     {
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+       
         int s = toggle->getValue();
         if(s%2>0){
             post_blur = s;
@@ -1526,8 +1527,8 @@ void CV::guiEventCV(ofxUIEventArgs &e)
     }else if (e.getName() == "smooth_size")
     {
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
-        smooth_size = toggle->getValue();
-         int s = toggle->getValue();
+        
+        int s = toggle->getValue();
         if(s%2>0){
             smooth_size = s;
         }
