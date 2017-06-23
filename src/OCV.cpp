@@ -729,7 +729,7 @@ void CV::PsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
                    imgBlobPath.curveTo(imagingContourFinder.blobs[b].pts[p]);
                }
                
-               imgBlobPath.simplify(0.3);
+               //imgBlobPath.simplify(0.3);
                imgBlobPath.setFilled(true);
                imgBlobPath.setFillColor(ofColor(0));
                imgBlobPaths.push_back(imgBlobPath);
