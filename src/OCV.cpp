@@ -123,8 +123,6 @@ void CV::setup( int width,int height, int framerate){
     {
         PrintError( error );
 
-
-
     }
 
     error = cam.StopCapture();
@@ -249,8 +247,8 @@ void CV::setupCVGui(){
     // ngui.setup("panel");
     //ngui.add(pre_blur.set("threshold_min",200,0,255));
 
-
-    ggui = new ofxUICanvas((ofGetWidth()/2)-200,500,200,600);
+    
+    ggui = new ofxUICanvas(500,500,200,600);
     ggui->setColorBack(ofColor::black);
     ggui->addWidgetDown(new ofxUINumberDialer(0, 255, 1, 0, "threshold_min1", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "pre_blur", OFX_UI_FONT_MEDIUM));
@@ -267,10 +265,11 @@ void CV::setupCVGui(){
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "smooth_size", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "smooth_sigma1", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(-1.00f, 1.00f, 0.01f, 1, "learningRate", OFX_UI_FONT_MEDIUM));
-    
+    ggui->autoSizeToFitWidgets();
+   
     ofAddListener(ggui->newGUIEvent,this, &CV::guiEventCV);
     ggui->loadSettings("GUI/CVSettings.xml");
-    ggui->setVisible(true);
+    ggui->setVisible(false);
 
 }
 
@@ -1106,6 +1105,7 @@ void CV::relearnBackground()
 void CV::toggleGui()
 {
 //  showGui = !showGui;
+    ggui->toggleVisible();
 }
 //-------------------------------------------------------------
 void CV::drawGui()
