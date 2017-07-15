@@ -80,6 +80,7 @@ public:
     void drawGui();
     void exit();
     void PrintError(Error error);
+    void PrintCameraInfo( CameraInfo* pCamInfo );
     // Getters
     ofPixels getRecordPixels();
     int getNumberOfBlobs();

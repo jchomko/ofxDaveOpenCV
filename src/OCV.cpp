@@ -74,12 +74,32 @@ void CV::setup( int width,int height, int framerate){
 
     }
 
+    error = cam.SetVideoModeAndFrameRate(VIDEOMODE_640x480Y16,FRAMERATE_60);
+    if( error != PGRERROR_OK )
+    {
+        PrintError(error);
+        
+    }
+
     CameraInfo camInfo;
     error = cam.GetCameraInfo(&camInfo);
     if (error != PGRERROR_OK)
     {
         PrintError( error );
     }
+
+    cout << "camera model name " << camInfo.modelName << endl;
+    string modelName = camInfo.modelName;
+    string firefly = "Firefly MV FMVU-03MTM";
+
+    if(modelName == firefly){
+        cout << "WE HAVE FIREFLY" << endl;
+    }else{
+        cout << "no match between " << modelName << " and " << firefly << endl;
+
+    }
+
+    PrintCameraInfo(&camInfo);
 
     Property camProp;
     PropertyInfo camPropInfo;
@@ -91,6 +111,31 @@ void CV::setup( int width,int height, int framerate){
     }
     cout <<  "Frame rate is : " <<  camProp.absValue << endl;
 
+
+    //Set Framerate to 50 (if firefly camera)
+  //  camProp.type = FRAME_RATE;
+    camProp.type = FRAME_RATE;
+    camProp.autoManualMode = false;
+    camProp.absControl = true;
+    camProp.onOff = true;
+
+    camProp.absValue = framerate;
+    
+    error = cam.SetProperty( &camProp );
+    if (error != PGRERROR_OK){
+        PrintError( error );
+    }
+    cout <<  "Setting Framerate : " << endl;
+
+
+//    camProp.type = FRAME_RATE;
+    error = cam.GetProperty( &camProp );
+    if (error != PGRERROR_OK){
+        PrintError( error );
+    }
+    cout <<  "Frame rate is : " <<  camProp.absValue << endl;
+
+/*
 /*
     camProp.type = GAIN;
     error = cam.GetProperty( &camProp );
@@ -118,6 +163,7 @@ void CV::setup( int width,int height, int framerate){
 
 //    error = cam.SetProperty( &camProp, false);
 
+   //TODO: set camera frame rate to 50 - look on other laptop for notes
     error = cam.StartCapture();
     if (error != PGRERROR_OK)
     {
@@ -1441,6 +1487,22 @@ vector<ofVec3f> CV::getBlobsCentroid()
 
 void CV::PrintError (Error error){
     error.PrintErrorTrace();
+   // cout << error << endl;
+
+}
+
+void CV::PrintCameraInfo( CameraInfo* pCamInfo )
+{
+    cout << endl;
+    cout << "*** CAMERA INFORMATION ***" << endl;
+    cout << "Serial number -" << pCamInfo->serialNumber << endl;
+    cout << "Camera model - " << pCamInfo->modelName << endl;
+    cout << "Camera vendor - " << pCamInfo->vendorName << endl;
+    cout << "Sensor - " << pCamInfo->sensorInfo << endl;
+    cout << "Resolution - " << pCamInfo->sensorResolution << endl;
+    cout << "Firmware version - " << pCamInfo->firmwareVersion << endl;
+    cout << "Firmware build time - " << pCamInfo->firmwareBuildTime << endl << endl;
+    
 }
 
 void CV::exit()
