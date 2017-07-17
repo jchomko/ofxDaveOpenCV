@@ -119,6 +119,7 @@ public:
     ofFbo       pathFbo;
     ofPath      imgBlobPath;
     vector<ofPath> imgBlobPaths;
+    void drawCameraFullScreen();
 
 private:
 
@@ -177,7 +178,7 @@ private:
     
     vector<ofxCvGrayscaleImage> pastImages;
     ofImage             outputImage;
-
+	
 
     ofTexture           outputTex;
     bool learnBackground;
@@ -210,7 +211,7 @@ private:
     // ofParameter<double> smooth_sigma1;
     // ofParameter<double> learningRate;
 
-     int threshold_min;
+    int threshold_min;
     int pre_blur;
     int erosion_size;
     int dilation_size;
@@ -227,4 +228,6 @@ private:
     int smooth_size;
     double smooth_sigma1;
     double learningRate;
+    
+
 };

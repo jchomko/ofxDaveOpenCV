@@ -1423,6 +1423,12 @@ void CV::draw()
 //ngui.draw();
 
 }
+
+void CV::drawCameraFullScreen(){
+	
+	 grayImage.draw(0,0, ofGetWidth(),ofGetHeight());
+
+}
 //--------------------------------------------------------------
 ofPixels CV::getRecordPixels()
 {
