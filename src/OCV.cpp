@@ -992,14 +992,14 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         
         //FrameDiff
         frameDiff.absDiff(lastFrame);
-        frameDiff.threshold(10);
+        frameDiff.threshold(5);
         
          //Frame diff Contour Finder
         //contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
-        contourFinder.findContours(frameDiff, 300, 9999999, 1,false,false);
-    
+        contourFinder.findContours(frameDiff, 50, 9999999, 5,false,true);
+
         lastFrame = grayImage;
-     
+
         if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
                present = false;
         }
@@ -1012,14 +1012,13 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
             }
 
         recordFbo.begin();
-        
+
            ofSetColor(255, 255, 255);
            //drawMat(keyOut2, 0, 20,_width/2,_height/2);
            drawMat( keyOut , 0,0 ,_width,_height);
            glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-        
         recordFbo.end();
-        
+
         //  pix.resize(808,608);    
         pix.setFromPixels(pixels, _width, _height, 4);
         //  pix.resize(320, 240);
