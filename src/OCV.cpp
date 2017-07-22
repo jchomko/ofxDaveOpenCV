@@ -294,7 +294,7 @@ void CV::setupCVGui(){
     //ngui.add(pre_blur.set("threshold_min",200,0,255));
 
     
-    ggui = new ofxUICanvas(500,500,200,600);
+    ggui = new ofxUICanvas(ofGetWidth()/2,200,200,600);
     ggui->setColorBack(ofColor::black);
     ggui->addWidgetDown(new ofxUINumberDialer(0, 255, 1, 0, "threshold_min1", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "pre_blur", OFX_UI_FONT_MEDIUM));
