@@ -999,12 +999,13 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         contourFinder.findContours(frameDiff, 50, 9999999, 5,false,true);
 
         lastFrame = grayImage;
+	 if(!isSomeoneInTheLight() && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
 
-        if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
+//        if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
                present = false;
         }
 
-        if(contourFinder.nBlobs > 0){
+        if(isSomeoneInTheLight()){
             backgroundTimer = ofGetElapsedTimeMillis();
                 //While Present
                 present = true;
