@@ -294,7 +294,7 @@ void CV::setupCVGui(){
     //ngui.add(pre_blur.set("threshold_min",200,0,255));
 
     
-    ggui = new ofxUICanvas(ofGetWidth()/2,200,200,600);
+    ggui = new ofxUICanvas(ofGetWidth()/2,0,200,600);
     ggui->setColorBack(ofColor::black);
     ggui->addWidgetDown(new ofxUINumberDialer(0, 255, 1, 0, "threshold_min1", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "pre_blur", OFX_UI_FONT_MEDIUM));
@@ -311,6 +311,8 @@ void CV::setupCVGui(){
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "smooth_size", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "smooth_sigma1", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(-1.00f, 1.00f, 0.01f, 1, "learningRate", OFX_UI_FONT_MEDIUM));
+    ggui->addWidgetDown(new ofxUINumberDialer(0, 20, 5, 1, "frameDiffThresh", OFX_UI_FONT_MEDIUM));
+    ggui->addWidgetDown(new ofxUINumberDialer(0, 8000, 1200, 1, "presenceTimeoutMillis", OFX_UI_FONT_MEDIUM));
     ggui->autoSizeToFitWidgets();
    
     ofAddListener(ggui->newGUIEvent,this, &CV::guiEventCV);
@@ -986,14 +988,15 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 
         //FrameDiff
         frameDiff.absDiff(lastFrame);
-        frameDiff.threshold(5);
+        frameDiff.threshold(frame_diff_thresh);
+
 
          //Frame diff Contour Finder
         //contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
         contourFinder.findContours(frameDiff, 50, 9999999, 5,false,true);
 
         lastFrame = grayImage;
-	 if(!isSomeoneInTheLight() && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
+	 if(!isSomeoneInTheLight() && ofGetElapsedTimeMillis() - backgroundTimer > presence_timeout_millis){
 
 //        if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
                present = false;
@@ -1603,8 +1606,14 @@ void CV::guiEventCV(ofxUIEventArgs &e)
     {
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
         learningRate = toggle->getValue();
+    }else if (e.getName() == "frameDiffThresh")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        frame_diff_thresh = toggle->getValue();
+    }else if (e.getName() == "presenceTimeoutMillis")
+    {
+        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+        presence_timeout_millis = toggle->getValue();
     }
-
-
 
 }

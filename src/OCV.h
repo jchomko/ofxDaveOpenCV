@@ -228,6 +228,7 @@ private:
     int smooth_size;
     double smooth_sigma1;
     double learningRate;
-    
+    int frame_diff_thresh;
+    int presence_timeout_millis;
 
 };
