@@ -906,11 +906,11 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         mask1 = cv::Scalar::all(0);
         maskOut.copyTo(mask1);
         
-        cv::Mat mask2 = cv::Mat(h, w, CV_8UC1);
-        mask2 = cv::Scalar::all(0);
+        //cv::Mat mask2 = cv::Mat(h, w, CV_8UC1);
+        //mask2 = cv::Scalar::all(0);
         
-        maskOut.copyTo(mask2);
-        mask2 = cv::Scalar::all(0);
+        //maskOut.copyTo(mask2);
+       // mask2 = cv::Scalar::all(0);
         
         cv::Mat bw;
         maskOut.copyTo(bw);
@@ -920,7 +920,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         cv::findContours(bw, contours, cont_hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
         
         std::vector<std::vector<cv::Point> > approx( contours.size() );
-        std::vector<std::vector<cv::Point> > hull( contours.size() );
+      //  std::vector<std::vector<cv::Point> > hull( contours.size() );
         for (size_t idx = 0; idx < contours.size(); idx++) {
 //            cv::vector<cv::Point> approx;
             cv::approxPolyDP( cv::Mat(contours[idx]),
@@ -934,12 +934,12 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
             
             cv::drawContours(maskOut, approx, idx, cv::Scalar(255), -1);
             
-            cv::convexHull(cv::Mat(approx[idx]), hull[idx]);
+    //        cv::convexHull(cv::Mat(approx[idx]), hull[idx]);
 //            int minContArea = 100;
 //            if (std::fabs(cv::contourArea(hull[idx])) < minContArea)
 //                continue;
             
-            cv::drawContours(mask2, hull, idx, cv::Scalar(255), -1);
+  //          cv::drawContours(mask2, hull, idx, cv::Scalar(255), -1);
         }
         
         
@@ -950,50 +950,44 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         cv::GaussianBlur(maskOut, maskOut, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
         
         // ---
-        
-        cv::GaussianBlur(mask2, mask2, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
-        
+/*        cv::GaussianBlur(mask2, mask2, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
         mask2.convertTo(mask2, CV_32FC1);
-        
         cv::GaussianBlur(mask2, mask2, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
-        
-        // ---
-        
+*/ 
+       // ---
         cv::Mat whiteMat = cv::Mat(origFrameMat.size(),CV_32FC1);
         whiteMat = cv::Scalar::all(1.0);
-        
-        
         /*
          * Prepare keyOut
          */
         cv::GaussianBlur(mask1, mask1, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
-        
+
         mask1.convertTo(mask1, CV_32FC1);
         cv::GaussianBlur(mask1, mask1, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
-        
+
         if (keyOut.rows < origFrameMat.rows || keyOut.cols < origFrameMat.cols) {
             keyOut = cv::Mat(origFrameMat.size(),CV_32FC1);
         }
         keyOut = whiteMat.mul(mask1);
         keyOut.convertTo(keyOut, CV_8UC1);
         cv::subtract(cv::Scalar::all(255),keyOut,keyOut);
-        
+
         /*
          * Prepare keyOut2
          */
-        if (keyOut2.rows < origFrameMat.rows || keyOut2.cols < origFrameMat.cols) {
+        /*
+	if (keyOut2.rows < origFrameMat.rows || keyOut2.cols < origFrameMat.cols) {
             keyOut2 = cv::Mat(origFrameMat.size(),CV_32FC1);
         }
         keyOut2 = whiteMat.mul(mask2);
         keyOut2.convertTo(keyOut2, CV_8UC1);
         cv::subtract(cv::Scalar::all(255),keyOut2,keyOut2);
+	*/
 
-        
-        
         //FrameDiff
         frameDiff.absDiff(lastFrame);
         frameDiff.threshold(5);
-        
+
          //Frame diff Contour Finder
         //contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
         contourFinder.findContours(frameDiff, 50, 9999999, 5,false,true);
