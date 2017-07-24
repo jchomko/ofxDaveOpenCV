@@ -135,7 +135,7 @@ void CV::setup( int width,int height, int framerate){
     }
     cout <<  "Frame rate is : " <<  camProp.absValue << endl;
 
-/*
+
 /*
     camProp.type = GAIN;
     error = cam.GetProperty( &camProp );
@@ -208,7 +208,7 @@ void CV::setup( int width,int height, int framerate){
     
 //    kinectGray.allocate(width*2,height*2);
     
-    fgrayImage.allocate(width,height);
+    //fgrayImage.allocate(width,height);
     //flastGrayImage.allocate(width,height);
 
 //    invDiffImage.allocate(width,height);
@@ -337,11 +337,6 @@ void CV::releaseCamera()
 
 #ifndef DEBUG
 
-      error = cam.StopCapture();
-    if (error != PGRERROR_OK)
-    {
-        PrintError( error );
-
         error = cam.StopCapture();
         if (error != PGRERROR_OK)
         {
@@ -356,10 +351,9 @@ void CV::releaseCamera()
             PrintError( error );
 
         }
-
+   
     #endif
 
-#endif
 
 }
 //--------------------------------------------------------------
