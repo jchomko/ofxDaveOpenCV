@@ -982,13 +982,23 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         recordFbo.end();
 */
         //  pix.resize(808,608);
-       pix.setFromPixels(keyOut.data, _width, _height, 1);
+	float b= 0;
 
-//	 pix.setFromPixels(pixels, _width, _height, 4);
-  
-      //  pix.resize(320, 240);
+	for(int x =0; x < keyOut.rows; x++){
+		for(int y = 0; y < keyOut.cols; y++){
+			b += keyOut.ptr<uchar>(y)[x]/255;
+		}
+	}
+
+	cout << "brightness :" << b << endl;
+
+	pix.setFromPixels(keyOut.data, _width, _height, 1);
+
+//     pix.setFromPixels(pixels, _width, _height, 4);
+
+   //  pix.resize(320, 240);
         //bool ofPixels_::resize(int dstWidth, int dstHeight, ofInterpolationMethod interpMethod=OF_INTERPOLATE_NEAREST_NEIGHBOR)
-}
+   }
 
 }
 
