@@ -766,40 +766,12 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 {
     double learningRate = -1.0;
-    //  The value between 0 and 1 that indicates how fast the background model is learnt. Negative parameter value makes the algorithm to use some automatically chosen learning rate. 0 means that the background model is not updated at all, 1 means that the background model is completely reinitialized from the last frame.
-
-    /*
-    int threshold_min = 200;
-    int pre_blur = 5;
-    int erosion_size = 5;
-    int dilation_size = 32;
-    int const max_elem = 2;
-    int const max_kernel_size = 21;
-    int morph_size = 16; // 32
-    int morph_iterations = 2;
-    int post_blur = 5;
-    */
-
-    // int threshold_min = 200;
-    // int pre_blur = 1;
-    // int erosion_size = 3;
-    // int dilation_size = 8;
-    // int const max_elem = 4;
-    // int const max_kernel_size = 11;
-    // int morph_size = 4; // 32
-    // int morph_iterations = 1;
-    // int post_blur = 1;
-
-
-    // int post_erosion_size = 1;
-    // int expand_size = 1;
-    // double expand_sigma1 = 0;
-    // int smooth_size = 5;
-    // double smooth_sigma1 = 1;
+    //  The value between 0 and 1 that indicates how fast the background model is learnt. 
+    //  Negative parameter value makes the algorithm to use some automatically chosen learning rate. 
+    // 0 means that the background model is not updated at all, 1 means that the background model is completely reinitialized from the last frame.
 
     int w = 320;
     int h = 240;
-    
     //_width = 808;
     //_height = 608;
     // --
@@ -834,150 +806,132 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
         grayImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows());
         grayImage.resize(_width, _height);
-        virginGray = grayImage;
-
         //cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
         //cv::cvtColor(grayImage, colorImage, cv::COLOR_GRAY2BGR);
         colorImage.setFromGrayscalePlanarImages(grayImage, grayImage, grayImage);
 
     #endif
-        
         grayImage = colorImage;
-        virginGray = grayImage;
         frameDiff = grayImage;
-        colorImage.mirror(mirrorV, mirrorH);
-         //colorImg = grayImage;
-        grayImage = colorImage;
-        
-        
+	colorImage.mirror(mirrorV, mirrorH);
+
         cv::Mat origFrameMat = cv::Mat(colorImage.getCvImage());
         cv::Mat frameMat = cv::Mat(colorImage.getCvImage());
-        
+
         cv::resize(origFrameMat, origFrameMat, cv::Size(w,h));
         cv::resize(frameMat, frameMat, cv::Size(w,h));
-        
+
         // pre blur
         cv::medianBlur(frameMat, frameMat, pre_blur);
-        
-        mog(frameMat, fgMaskMOG2, learningRate);
+
+        mog( frameMat, fgMaskMOG2, learningRate );
         mog.getBackgroundImage(bgMat);
-        
+
         fgMaskMOG2.copyTo(maskOut);
-        
+
         cv::threshold(maskOut, maskOut, threshold_min, 255, cv::THRESH_BINARY); // value around 200 removes shadows
-        
+
         cv::threshold(maskOut, maskOut, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU); // denoise binary image
-        
-        
+
         // Erode
         cv::Mat erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
                                                     cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                                     cv::Point( erosion_size, erosion_size ) );
 
-        
         cv::erode(maskOut, maskOut, erosion_kernel);
-        
         // Dilate
         cv::Mat dilation_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
                                                            cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
                                                            cv::Point( dilation_size, dilation_size ) );
-        
-        
-        
-        
         cv::dilate(maskOut, maskOut, dilation_kernel);
-        
+
         // Morphology
         cv::Mat morph_element = getStructuringElement( cv::MORPH_ELLIPSE,
                                                       cv::Size( 2*morph_size + 1, 2*morph_size+1 ),
                                                       cv::Point( morph_size, morph_size ) );
 
-        
         cv::morphologyEx( maskOut, maskOut, cv::MORPH_CLOSE, morph_element, cv::Point(-1,-1), morph_iterations, cv::BORDER_CONSTANT );
-        
-        
+
         // post Erode
         cv::Mat post_erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
                                                            cv::Size( 2*post_erosion_size + 1, 2*post_erosion_size+1 ),
                                                            cv::Point( post_erosion_size, post_erosion_size ) );
-        
-        
+
+
         cv::erode(maskOut, maskOut, post_erosion_kernel);
-        
-        
+
         cv::medianBlur(maskOut, maskOut, post_blur);
-        
-        
+
         cv::Mat mask1 = cv::Mat(h, w, CV_8UC1);
         mask1 = cv::Scalar::all(0);
         maskOut.copyTo(mask1);
-        
+
         //cv::Mat mask2 = cv::Mat(h, w, CV_8UC1);
         //mask2 = cv::Scalar::all(0);
-        
         //maskOut.copyTo(mask2);
        // mask2 = cv::Scalar::all(0);
-        
+
         cv::Mat bw;
         maskOut.copyTo(bw);
 
         std::vector<std::vector<cv::Point> > contours;
         cv::Mat cont_hierarchy;
         cv::findContours(bw, contours, cont_hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-        
+
         std::vector<std::vector<cv::Point> > approx( contours.size() );
-      //  std::vector<std::vector<cv::Point> > hull( contours.size() );
+        //  std::vector<std::vector<cv::Point> > hull( contours.size() );
         for (size_t idx = 0; idx < contours.size(); idx++) {
 //            cv::vector<cv::Point> approx;
             cv::approxPolyDP( cv::Mat(contours[idx]),
                               approx[idx],
                               cv::arcLength(cv::Mat(contours[idx]), true)*0.02, true );
-            
+
             // Skip small or non-convex objects
             int minContArea = 100;
 //            if (std::fabs(cv::contourArea(contours[idx])) < minContArea || !cv::isContourConvex(contours[idx]))
 //                continue;
-            
             cv::drawContours(maskOut, approx, idx, cv::Scalar(255), -1);
-            
     //        cv::convexHull(cv::Mat(approx[idx]), hull[idx]);
 //            int minContArea = 100;
 //            if (std::fabs(cv::contourArea(hull[idx])) < minContArea)
 //                continue;
-            
   //          cv::drawContours(mask2, hull, idx, cv::Scalar(255), -1);
         }
-        
-        
-        
-        // ---
-        
 
         cv::GaussianBlur(maskOut, maskOut, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
-        
-        // ---
-/*        cv::GaussianBlur(mask2, mask2, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
+/*      cv::GaussianBlur(mask2, mask2, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
         mask2.convertTo(mask2, CV_32FC1);
         cv::GaussianBlur(mask2, mask2, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
-*/ 
-       // ---
+*/
+
+	//Generate a white image
         cv::Mat whiteMat = cv::Mat(origFrameMat.size(),CV_32FC1);
         whiteMat = cv::Scalar::all(1.0);
-        /*
-         * Prepare keyOut
-         */
-        cv::GaussianBlur(mask1, mask1, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
 
+        /*
+        * Prepare keyOut
+        */
+
+        cv::GaussianBlur(mask1, mask1, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
         mask1.convertTo(mask1, CV_32FC1);
+
         cv::GaussianBlur(mask1, mask1, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
 
         if (keyOut.rows < origFrameMat.rows || keyOut.cols < origFrameMat.cols) {
             keyOut = cv::Mat(origFrameMat.size(),CV_32FC1);
         }
-        keyOut = whiteMat.mul(mask1);
-        keyOut.convertTo(keyOut, CV_8UC1);
-        cv::subtract(cv::Scalar::all(255),keyOut,keyOut);
 
+	//multiply the white image by the mask image
+        keyOut = whiteMat.mul(mask1);
+
+	//convert to 8 bit single-channel array
+        keyOut.convertTo(keyOut, CV_8UC1);
+
+        //subtract(src1, src2, destination)
+	//subtract the key from a black white image
+	cv::subtract(cv::Scalar::all(255),keyOut,keyOut);
+
+	//we're skipping this for now i'm not sure why
         /*
          * Prepare keyOut2
          */
@@ -990,42 +944,50 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         cv::subtract(cv::Scalar::all(255),keyOut2,keyOut2);
 	*/
 
-        //FrameDiff
+	//This section dectects presence to see if we should record the images we're capturing
+        //Calculate frame difference
         frameDiff.absDiff(lastFrame);
         frameDiff.threshold(frame_diff_thresh);
 
-
-         //Frame diff Contour Finder
+        //Frame diff Contour Finder - for decteing presence
         //contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
         contourFinder.findContours(frameDiff, 50, 9999999, 5,false,true);
 
-        lastFrame = grayImage;
-	 if(!isSomeoneInTheLight() && ofGetElapsedTimeMillis() - backgroundTimer > presence_timeout_millis){
+	//Save the last frame
+	lastFrame = grayImage;
 
-//        if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
+	//Calling only once to save calculations
+	bool someoneInLight = isSomeoneInTheLight();
+
+	//Is someone in the light is a function that checks the contourfinder, and is broken out so that it can be called from ofApp.cpp
+	if( !someoneInLight && ofGetElapsedTimeMillis() - backgroundTimer > presence_timeout_millis){
                present = false;
         }
-
-        if(isSomeoneInTheLight()){
+	//this is not an else-if because we want to always be resetting the timer when someone is prsent,
+        if( someoneInLight ){
             backgroundTimer = ofGetElapsedTimeMillis();
                 //While Present
                 present = true;
-                absenceTimer = ofGetElapsedTimeMillis() + 5000;
+                //absenceTimer = ofGetElapsedTimeMillis() + 5000;
             }
 
-        recordFbo.begin();
-
+	//Draw Mat to get pixels
+	//This seems a bit much
+	//
+/*        recordFbo.begin();
            ofSetColor(255, 255, 255);
            //drawMat(keyOut2, 0, 20,_width/2,_height/2);
            drawMat( keyOut , 0,0 ,_width,_height);
            glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         recordFbo.end();
+*/
+        //  pix.resize(808,608);
+       pix.setFromPixels(keyOut.data, _width, _height, 1);
 
-        //  pix.resize(808,608);    
-        pix.setFromPixels(pixels, _width, _height, 4);
-        //  pix.resize(320, 240);
-
-       //bool ofPixels_::resize(int dstWidth, int dstHeight, ofInterpolationMethod interpMethod=OF_INTERPOLATE_NEAREST_NEIGHBOR)
+//	 pix.setFromPixels(pixels, _width, _height, 4);
+  
+      //  pix.resize(320, 240);
+        //bool ofPixels_::resize(int dstWidth, int dstHeight, ofInterpolationMethod interpMethod=OF_INTERPOLATE_NEAREST_NEIGHBOR)
 }
 
 }
@@ -1398,7 +1360,7 @@ void CV::draw()
     
 
     virginGray.draw(ofGetWidth() - 2*_width,0,_width,_height);
-    ofDrawBitmapStringHighlight("Virgin Gray",ofGetWidth() - 2*_width, 15);
+    ofDrawBitmapStringHighlight("Virgin Gray TEXT",ofGetWidth() - 2*_width, 15);
 
     recordFbo.draw(ofGetWidth()- 2*_width,_height,_width,_height);
     ofDrawBitmapStringHighlight("Record Fbo",ofGetWidth() - 2*_width, _height+15);
