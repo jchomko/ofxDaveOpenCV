@@ -9,20 +9,24 @@
 
 using namespace ofxCv;
 
+
+
 //--------------------------------------------------------------
+
 void CV::setup( int width,int height, int framerate){
 
-    setupCVGui();
+        setupCVGui();
     //Variables Over
-    _width = width;
+        _width = width;
     _height = height;
-    
-    canDoCalibration = false;
+
+
+        canDoCalibration = false;
     blobPaths.resize(10);
         // Grabber initiallization
-    
+
 #ifdef DEBUG
-    debugVideo.loadMovie("/root/recordings/test2.mkv");
+    debugVideo.loadMovie("video.mp4");
     debugVideo.setLoopState(OF_LOOP_NORMAL);
     debugVideo.play();
 
@@ -44,30 +48,37 @@ void CV::setup( int width,int height, int framerate){
     if (error != PGRERROR_OK)
     {
         PrintError( error );
+
     }
 
     PGRGuid guid;
     cout << "Number of cameras detected: " << numCameras << endl;
+
     for (unsigned int i=0; i < numCameras; i++)
     {
+
         error = busMgr.GetCameraFromIndex(i, &guid);
         if (error != PGRERROR_OK)
         {
             PrintError( error );
+
         }
-        //RunSingleCamera( guid );
+
+       // RunSingleCamera( guid );
     }
-    
+
     error = cam.Connect(&guid);
     if (error != PGRERROR_OK)
     {
         PrintError( error );
+
     }
 
     error = cam.SetVideoModeAndFrameRate(VIDEOMODE_640x480Y16,FRAMERATE_60);
     if( error != PGRERROR_OK )
     {
         PrintError(error);
+        
     }
 
     CameraInfo camInfo;
@@ -85,9 +96,11 @@ void CV::setup( int width,int height, int framerate){
         cout << "WE HAVE FIREFLY" << endl;
     }else{
         cout << "no match between " << modelName << " and " << firefly << endl;
+
     }
-    
+
     PrintCameraInfo(&camInfo);
+
     Property camProp;
     PropertyInfo camPropInfo;
 
@@ -123,13 +136,34 @@ void CV::setup( int width,int height, int framerate){
     cout <<  "Frame rate is : " <<  camProp.absValue << endl;
 
 
-    camProp.type = AUTO_EXPOSURE;
-    camProp.onOff = false;
-    error = cam.SetProperty(&camProp);
+/*
+    camProp.type = GAIN;
+    error = cam.GetProperty( &camProp );
     if (error != PGRERROR_OK){
-	PrintError(error);
+        PrintError( error );
+   //     return -1;
     }
 
+    camProp.autoManualMode = false;
+    camProp.valueA = 16;  //16-64
+
+    error = cam.SetProperty( &camProp );
+    if (error != PGRERROR_OK){
+        PrintError( error );
+        //return -1;
+    }
+*/
+
+
+    //camProp.absControl = true;
+    //camProp.onePush = false;
+    //camProp.onOff = true;
+    //camProp.autoManualMode = false;
+    //camProp.absValue = 25;
+
+//    error = cam.SetProperty( &camProp, false);
+
+   //TODO: set camera frame rate to 50 - look on other laptop for notes
     error = cam.StartCapture();
     if (error != PGRERROR_OK)
     {
@@ -137,13 +171,11 @@ void CV::setup( int width,int height, int framerate){
 
     }
 
-    
     error = cam.StopCapture();
 
     error = cam.StartCapture();
 
 
-    
 #endif
 
     //Allocate the Memory for the CV processes
@@ -162,7 +194,7 @@ void CV::setup( int width,int height, int framerate){
     cout << "Allocating Warped Image" << endl;
     lastFrame.allocate(width, height);
     cout << "Allocating Last Image" << endl;
-    backSubImage.allocate(width,height);
+    diffImage.allocate(width,height);
     cout << "Allocating Diff Image" << endl;
     frameDiff.allocate(width,height);
     cout << "Allocating Frame Diff Image" << endl;
@@ -171,9 +203,6 @@ void CV::setup( int width,int height, int framerate){
     virginGray.allocate(width,height);
     cout << "Allocating VirginGray Image" << endl;
     colorImage.allocate(width,height);
-    
-    backSubContourImage.allocate(width, height);
-    outputGrayscale.allocate(width, height);
 
     cout << "width : " << width << " height: " << height << endl;
     
@@ -182,7 +211,7 @@ void CV::setup( int width,int height, int framerate){
     //fgrayImage.allocate(width,height);
     //flastGrayImage.allocate(width,height);
 
-//    invbackSubImage.allocate(width,height);
+//    invDiffImage.allocate(width,height);
     cleanFrameDiff.allocate(width,height);
 
     outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
@@ -212,6 +241,7 @@ void CV::setup( int width,int height, int framerate){
 
     _offsetX = 0;
     _offsetY = 0;
+
 
     srcPts[0].set(0, 0);
     srcPts[1].set(_width, 0);
@@ -254,36 +284,6 @@ void CV::setup( int width,int height, int framerate){
     
     setupCVGui();
     //gui->toggleVisible();
-
-}
-
-void CV::resetDebugVideo(){
-#ifdef DEBUG
-    debugVideo.setPosition(0.22f);
-#endif
-}
-
-void CV::updateCamExposure(){
-    
-//    Property camProp;
-//
-//    camProp.type = AUTO_EXPOSURE;
-//    camProp.onOff = true;
-//    error = cam.SetProperty(&camProp);
-//
-//    if (error != PGRERROR_OK){
-//        PrintError(error);
-//    }
-//
-//    //This should be done after awhile
-//    camProp.type = AUTO_EXPOSURE;
-//    camProp.onOff = false;
-//    error = cam.SetProperty(&camProp);
-//
-//    if (error != PGRERROR_OK){
-//        PrintError(error);
-//    }
-
 }
 
 void CV::setupCVGui(){
@@ -316,9 +316,7 @@ void CV::setupCVGui(){
     ggui->addWidgetDown(new ofxUINumberDialer(-1.00f, 1.00f, 0.01f, 1, "learningRate", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 20, 5, 1, "frameDiffThresh", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 8000, 1200, 1, "presenceTimeoutMillis", OFX_UI_FONT_MEDIUM));
-    ggui->addButton("updateExposure", false);
     ggui->autoSizeToFitWidgets();
-    
    
     ofAddListener(ggui->newGUIEvent,this, &CV::guiEventCV);
     ggui->loadSettings("GUI/CVSettings.xml");
@@ -510,64 +508,184 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 #endif
 
     if (bNewFrame){
-    
+
     #ifdef DEBUG
-        colorImage.resize(debugVideo.getWidth(),debugVideo.getHeight());
-        colorImage.setFromPixels(debugVideo.getPixels(), debugVideo.getWidth(),debugVideo.getHeight());
-        colorImage.resize(_width, _height);
+
+        colorImage.resize(808,608);
+                colorImage.setFromPixels(debugVideo.getPixels(),808,608);
+                colorImage.resize(_width, _height);
         grayImage = colorImage;
         virginGray = grayImage;
+
     #else
-        grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
-        grayImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows());
-        grayImage.resize(_width, _height);
-        virginGray = grayImage;
+
+            grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
+            grayImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows());
+            grayImage.resize(_width, _height);
+            virginGray = grayImage;
+
     #endif
+
+    //cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
+
     //Warping
-    // We get back the warped coordinates - scaled to our camera size
+        // We get back the warped coordinates - scaled to our camera size
     ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
     // Lets warp with those cool coordinates!!!!!
     grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
     // Lets calculate the openCV matrix for our coordWarping
     coordWarp.calculateMatrix(warpedPts, dstPts);
-        
+    //colorImg.brightnessContrast(brightness, contrast);
+        //colorImg.blurGaussian(gaussBlur);
+        //grayImage = colorImg;
+
+//    gray_mat = grayImage.getCvImage();
+//    cv::Rect crop_roi = cv::Rect(_offsetX,_offsetY, _width - _offsetX, _height -_offsetY);
+//    crop = gray_mat(crop_roi).clone();
+//    grayImage = crop;
+
     grayImage.blurMedian(medianBlur);
+
     frameDiff = grayImage;
-    backSubImage = grayImage;
-        
-    //Check if there is movement
+    diffImage = grayImage;
+    //invDiffImage = grayImage;
+
     frameDiff.absDiff(lastFrame);
-        
-    //Save the diff to add into the background subtracted image
+
     cleanFrameDiff = frameDiff;
-    //Threshold the image
+
     frameDiff.threshold(moveThreshold);
-    //Find contours to detect movement
+
     contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum, fillHoles, useApproximation);
-        
-    //Do the background subtraction
-    backSubImage.absDiff(grayBg);
+
+    diffImage.absDiff(grayBg);
+
+    diffImage += cleanFrameDiff;
+
+    diffImage.brightnessContrast(brightness, contrast);
+    diffImage.blur(blur);
+
+    if (erode){
+       diffImage.erode();
+    }
+    if (dilate){
+       diffImage.dilate();
     
-    if(erode){
-        backSubImage.erode();
-        frameDiff.erode();
+    
+    frameDiff = grayImage;  
+        diffImage = grayImage;  
+
+        //frameDiff.brightnessContrast(brightness, contrast);
+        //FrameDiff
+        frameDiff.absDiff(lastFrame);
+        frameDiff.threshold(threshold);
+        
+         //Frame diff Contour Finder
+        contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
+        
+
+        //Background sub for static background
+        //grayImage.absDiff(backImage);
+        
+        //diffImage = colorImg;
+        
+        //diffImage.absDiff(grayBg);
+       
+        //diffImage += frameDiff;
+        
+       
+        
+        //Contour fining
+        //frameDiff.threshold(threshold);
+        //frameDiff.adaptiveThreshold(240);
+
+       
+        //unsigned char * diffpix = grayImage.getPixels();
+        
+        //unsigned char * threshpix = diffImage.getPixels();
+        
+        //Image creation
+       // diffImage = grayBg;
+        //diffImage -= grayBg;
+        //diffImage.invert();
+        
+        //diffImage.threshold(threshold);
+
+        diffImage = frameDiff;
+
+        diffImage.blur(blur);
+
+       // diffImage.adaptiveThreshold(threshold);
+        diffImage.threshold(threshold);
+
+        //diffImage.adaptiveThreshold(blur);
+        diffImage.blur(blur);
+
+
+        diffImage.invert();
+        
+        //diffImage.dilate();
+
+        //diffImage.invert();
+
+        //        int c = 0;
+        
+        // for (int i = 0; i < _width*_height*4; i ++)
+        // {
+        //     if( threshpix[i] > threshold)
+        //     { // used to be 6
+        //         outpix[i] = ofClamp(diffpix[i]/5, 0, 255);
+        //     }
+        //     else
+        //     {
+        //         outpix[i] = 255;
+        //     }
+        // }
+        
+        // virginGray = diffImage;
+        //lastFrame = colorImg;
+        //lastFrame.brightnessContrast(brightness, contrast);
+        //outputImage = diffImage;
+        outputImage.setFromPixels(diffImage.getPixels(), diffImage.getWidth(), diffImage.getHeight(), OF_IMAGE_GRAYSCALE);
+
+
+        lastFrame = grayImage;
+        pastImages.push_back(lastFrame);
+
+        //outputImage.setFromPixels(diffImage.getPixels())
+        //outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
+        //pix.setFromPixels(outputImage.getPixels(), 320, 240, 4);
+        //pix.setFromPixels(outpix, 320, 240, 4);
     }
     
-    if(dilate){
-        backSubImage.dilate();
-        frameDiff.dilate();
+    //For better bacgkround subtraction I'm saving past images and using them to subtract
+    
+    if(pastImages.size() > 50)
+    {
+        pastImages.erase(pastImages.begin());
     }
 
-//    backSubImage.brightnessContrast(brightness, contrast);
+    unsigned char * origPix = grayImage.getPixels();
+    unsigned char * threshpix = diffImage.getPixels();
+
+        for (int i = 0; i < _width*_height; i ++){
+            if( threshpix[i] > imgThreshold) //threshold
+            {
+                 outpix[i] = ofClamp(origPix[i]/5, 0, 255);
+            }
+             else
+             {
+                outpix[i] = 255;
+             }
+        }
+
+        lastFrame = virginGray;
+
+    lastFrame.blurMedian(medianBlur);
+
+    outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
     
-    //Mask the image so that we get the original pixels
-    //Combine both frame diff and background sub to get the most
-    //We could also combine this with a contour finder to get the most
-        
-  
-    backSubContourImage = backSubImage;
-    backSubContourImage.threshold(imgThreshold);
-    imagingContourFinder.findContours(backSubContourImage,minBlobSize, maxBlobSize, maxBlobNum, fillHoles, useApproximation);
+    }
 
     //On Exit
     //this just checks if there's movement, and the presenceFinder contourFinder
@@ -577,107 +695,77 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     // as recording is motion based, we want to be pretty sure nothing's been in the frame, and that nothing
     //sticks to the frame while people are playing
 
-            bool someoneInLight = isSomeoneInTheLight();
-
-        if(!someoneInLight && ofGetElapsedTimeMillis() - backgroundTimer > presence_timeout_millis || ofGetFrameNum() < 100 ){
-            present = false;
-
-            //lastFrame = virginGray;
-            //lastFrame = kinectGray;
-            pastImages.push_back(lastFrame);
-            
-            //Maybe do an average of all 50 images? and then lighten / darken ?
-            if(pastImages.size() > 50){
-                    pastImages.erase(pastImages.begin());
-             }
-
-            if(pastImages.size() > 0 )
-                {
-                    grayBg = pastImages[0];
-                    grayBg.blurMedian(medianBlur);
-                }
-        }
-
-        //this is not an else-if because we want to always be resetting the timer when someone is prsent,
-        if( someoneInLight ){
-            backgroundTimer = ofGetElapsedTimeMillis();
-            //While Present
-            present = true;
-            //absenceTimer = ofGetElapsedTimeMillis() + 5000;
-        }
-    
-    //these values are all unthresholded so we should be able to mix and match them
-    unsigned char * origPix = virginGray.getPixels();
-    unsigned char * backgroundSubPix = backSubImage.getPixels();
-    //use the unthresholded frame diff
-    unsigned char * frameDiffPix = cleanFrameDiff.getPixels();
-    
-    for (int i = 0; i < _width*_height; i ++){
-        
-        if(backgroundSubPix[i] > imgThreshold){
-            outpix[i] = backgroundSubPix[i]*3;
-        }else if(frameDiffPix[i] > imgThreshold){
-            outpix[i] = frameDiffPix[i]*3;
-        }else{
-            outpix[i] = 0;
-        }
-    }
-    
-    outputGrayscale.setFromPixels(outpix, _width, _height);
-    
-    if(dilate){
-        outputGrayscale.dilate();
-    }
-    outputGrayscale.brightnessContrast(brightness,contrast);
-    
-    outputGrayscale.invert();
-        
-    //change this to a ofxcvgrayscaleimage
-    //outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
-    
-    
-    //Draw to the FBO
-    //ofSetColor(255,255,255);
-    
-    recordFbo.begin();
-        ofPushStyle();
-        ofSetColor(255);
-
-
-//        ofFill();
-        ofRect(0, 0, _width, _height);
-
-        outputGrayscale.draw(0, 0, _width,_height);
-        
-        for (int i = 0; i < imagingContourFinder.nBlobs; i++)
-        {
-                ofSetColor(0);
-                ofBeginShape();
-
-            for (int k = 0 ; k < imagingContourFinder.blobs[i].nPts-2; k+=2){
-                    ofVertex(imagingContourFinder.blobs[i].pts[k].x, imagingContourFinder.blobs[i].pts[k].y);
-                }
-                ofEndShape(true);
-         }
-    
-        // ofSetColor(255, 255, 255);
-        //outputImage.draw(0, 0, _width,_height);
-        
-        glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-        ofPopStyle();
-    recordFbo.end();
-    pix.setFromPixels(pixels, _width, _height, 4);
-        
+   // if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer >  10000)  // | bLearnBackground )
+   if((contourFinder.nBlobs == 0 && (ofGetElapsedTimeMillis() - backgroundTimer >  5000)) |  ofGetFrameNum() < 100 )
+   {
     lastFrame = virginGray;
-    lastFrame.blurMedian(medianBlur);
+    //lastFrame = kinectGray;
+    pastImages.push_back(lastFrame);
 
+    //Maybe do an average of all 50 images? and then lighten / darken ?
+    if(pastImages.size() > 50){
+            pastImages.erase(pastImages.begin());
+     }
+
+    if(pastImages.size() > 0 )
+        {
+                grayBg = pastImages[0];
+            //grayBg.brightnessContrast(-0.5,0);
+            grayBg.blur(blur);
+        }
+    learnBackground = false;
+        //present = false;
     }
+
+    if(contourFinder.nBlobs == 0 && ofGetElapsedTimeMillis() - backgroundTimer > 1200){
+       present = false;
+    }
+
+    if(contourFinder.nBlobs > 0)
+    {
+        backgroundTimer = ofGetElapsedTimeMillis();
+        //While Present
+        present = true;
+        absenceTimer = ofGetElapsedTimeMillis() + 5000;
+    }
+    
+    // Compile the FBO
+    recordFbo.begin();
+//  ofSetColor(255);
+    
+    ofFill();
+    ofRect(0, 0, _width, _height);
+    for (int i = 0; i < contourFinder.nBlobs; i++)
+    {
+            ofSetColor(0);
+            ofBeginShape();
+
+        for (int k = 0 ; k < contourFinder.blobs[i].nPts; k++)
+            {
+                    ofVertex(contourFinder.blobs[i].pts[k].x, contourFinder.blobs[i].pts[k].y);
+            }
+            ofEndShape(true);
+     }
+    
+    // ofSetColor(255, 255, 255);
+    //outputImage.draw(0, 0, _width,_height);
+    //outputImage.draw(0, 0, _width,_height);
+    glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    
+    recordFbo.end();
+    
+    pix.setFromPixels(pixels, _width, _height, 4);
+
 }
+
+
+
+
 //--------------------------------------------------------------
 //void CV::DsubtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold,int blur, int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,float brightness, float contrast,bool erode,bool dilate)
 void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 {
-   // double learningRate = -1.0;
+    double learningRate = -1.0;
     //  The value between 0 and 1 that indicates how fast the background model is learnt. 
     //  Negative parameter value makes the algorithm to use some automatically chosen learning rate. 
     // 0 means that the background model is not updated at all, 1 means that the background model is completely reinitialized from the last frame.
@@ -709,8 +797,8 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
     if (bNewFrame){
 
         #ifdef DEBUG
-        colorImage.resize(debugVideo.getWidth(),debugVideo.getHeight());
-        colorImage.setFromPixels(debugVideo.getPixels(),debugVideo.getWidth(),debugVideo.getHeight());
+        colorImage.resize(808,608);
+        colorImage.setFromPixels(debugVideo.getPixels(),808,608);
         colorImage.resize(_width, _height);
        
     #else
@@ -736,18 +824,13 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         // pre blur
         cv::medianBlur(frameMat, frameMat, pre_blur);
 
-/*	if(isSomeoneInTheLight() ){
-		learningRate = 0;
-	}else{
-		learningRate = 0.5;
-	}
-*/
-       	mog( frameMat, fgMaskMOG2, learningRate );
+        //Calculate Background
+	mog( frameMat, fgMaskMOG2, learningRate );
         mog.getBackgroundImage(bgMat);
+
         fgMaskMOG2.copyTo(maskOut);
 
         cv::threshold(maskOut, maskOut, threshold_min, 255, cv::THRESH_BINARY); // value around 200 removes shadows
-
         cv::threshold(maskOut, maskOut, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU); // denoise binary image
 
         // Erode
@@ -882,7 +965,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         }
 	//this is not an else-if because we want to always be resetting the timer when someone is prsent,
         if( someoneInLight ){
-                backgroundTimer = ofGetElapsedTimeMillis();
+            backgroundTimer = ofGetElapsedTimeMillis();
                 //While Present
                 present = true;
                 //absenceTimer = ofGetElapsedTimeMillis() + 5000;
@@ -890,6 +973,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 
 	//Draw Mat to get pixels
 	//This seems a bit much
+	//
 /*        recordFbo.begin();
            ofSetColor(255, 255, 255);
            //drawMat(keyOut2, 0, 20,_width/2,_height/2);
@@ -906,7 +990,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 		}
 	}
 
-//	cout << "brightness :" << b << endl;
+	cout << "brightness :" << b << endl;
 
 	pix.setFromPixels(keyOut.data, _width, _height, 1);
 
@@ -967,6 +1051,8 @@ void CV::readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor)
         }
     }
     */
+
+
 }
 //--------------------------------------------------------------
 bool CV::newFrame()
@@ -1111,7 +1197,6 @@ void CV::getAllPaths()
 void CV::drawTracking()
 {
     ofPushMatrix();
-    ofPushStyle();
     ofTranslate(ofGetWidth()-_width*2, 0);
     ofSetColor(0, 0, 0);
     ofFill();
@@ -1152,33 +1237,32 @@ void CV::drawTracking()
             ofEndShape(false);
         }
     }
-    ofPopStyle();
+
     ofPopMatrix();
 
 }
 //--------------------------------------------------------------
 void CV::drawLive()
 {
-    
-//    ofSetColor(255);
-//    ofDrawBitmapStringHighlight("Live",ofGetWidth()-_width+5,15);
-//    grayImage.draw(ofGetWidth()-_width,0,_width,_height);
-//    ofPushMatrix();
-//    ofTranslate(ofGetWidth()-_width, 0);
-//    ofBeginShape();
-//    ofNoFill();
-//    ofSetColor(255, 0, 0);
-//    for (int i = 0; i < 4; i++)
-//    {
-//        if (i == 0) {
-//            ofVertex(dstPts[0]);
-//            ofVertex(dstPts[3]);
-//        }
-//        ofVertex(dstPts[i]);
-//
-//    }
-//    ofEndShape(false);
-//    ofPopMatrix();
+    ofSetColor(255);
+    ofDrawBitmapStringHighlight("Live",ofGetWidth()-_width+5,15);
+    grayImage.draw(ofGetWidth()-_width,0,_width,_height);
+    ofPushMatrix();
+    ofTranslate(ofGetWidth()-_width, 0);
+    ofBeginShape();
+    ofNoFill();
+    ofSetColor(255, 0, 0);
+    for (int i = 0; i < 4; i++)
+    {
+        if (i == 0) {
+            ofVertex(dstPts[0]);
+            ofVertex(dstPts[3]);
+        }
+        ofVertex(dstPts[i]);
+
+    }
+    ofEndShape(false);
+    ofPopMatrix();
 }
 //--------------------------------------------------------------
 void CV::draw()
@@ -1195,10 +1279,11 @@ void CV::draw()
     
     ofPushMatrix();
     ofTranslate(x, y);
-    ofDrawBitmapStringHighlight("outputGrayscale",5,15);
-    outputGrayscale.draw(0,20,_width/2,_height/2);
+    ofDrawBitmapStringHighlight("colorImage",5,15);
+    colorImage.draw(0,20,_width/2,_height/2);
     ofPopMatrix();
     x += _width/2;
+    
     
     
     ofPushMatrix();
@@ -1224,8 +1309,8 @@ void CV::draw()
     
     ofPushMatrix();
     ofTranslate(x, y);
-    ofDrawBitmapStringHighlight("backSubImage",5,15);
-    backSubImage.draw(0,20,_width/2,_height/2);
+    ofDrawBitmapStringHighlight("grayDiff",5,15);
+    grayDiff.draw(0,20,_width/2,_height/2);
     ofPopMatrix();
     x += _width/2;
     
@@ -1251,7 +1336,7 @@ void CV::draw()
     ofDrawBitmapStringHighlight("maskOut",5,15);
     drawMat(maskOut, 0, 20,_width/2,_height/2);
     ofPopMatrix();
-
+//    x += _width/2;
     
     ofPushMatrix();
     ofTranslate(x, y + _height/2 + 20);
@@ -1265,19 +1350,48 @@ void CV::draw()
     drawMat(keyOut2, 0, 20,_width,_height);
     ofPopMatrix();
     
-  
+    // ofPushMatrix();
+    // ofTranslate(x + (_width/2 + 20)*1, y + (_height/2 + 20)*1);
+    // ofDrawBitmapStringHighlight("keyOut3",5,15);
+    // drawMat(keyOut3, 0, 20,_width/2,_height/2);
+    // ofPopMatrix();
+    
+    // ofPushMatrix();
+    // ofTranslate(x + (_width/2 + 20)*1, y + (_height/2 + 20)*2);
+    // ofDrawBitmapStringHighlight("keyOut4",5,15);
+    // drawMat(keyOut4, 0, 20,_width/2,_height/2);
+    // ofPopMatrix();
+
+    
+  //  return;
    
+    
+    
+    
+
     virginGray.draw(ofGetWidth() - 2*_width,0,_width,_height);
-    ofDrawBitmapStringHighlight("Virgin Gray",ofGetWidth() - 2*_width, 15);
-    //Draws on top of Virgin Gray
-    drawTracking();
-    
-    
+    ofDrawBitmapStringHighlight("Virgin Gray TEXT",ofGetWidth() - 2*_width, 15);
+
     recordFbo.draw(ofGetWidth()- 2*_width,_height,_width,_height);
     ofDrawBitmapStringHighlight("Record Fbo",ofGetWidth() - 2*_width, _height+15);
 
-   
-    
+    grayBg.draw(ofGetWidth()-2*_width, _height*2,_width/2,_height/2);
+    ofDrawBitmapStringHighlight("Gray Bg", ofGetWidth() - 2*_width, _height*2+15);
+
+
+    ofDrawBitmapStringHighlight("Color Img",0+5,15);
+    grayImage.draw(_width/2,0,_width/2,_height/2);  // Gray Warped
+    ofDrawBitmapStringHighlight("Gray Img",_width/2+5,15);
+    grayBg.draw(0,120,_width/2,_height/2);
+    ofDrawBitmapStringHighlight("BG Img",5,135);
+    frameDiff.draw(_width/2,120,_width/2,_height/2);
+    grayDiff.draw(_width/2,120,_width/2,_height/2);
+    ofDrawBitmapStringHighlight("Diff Img",_width/2+5,135);
+    recordFbo.draw(0,_height,_width,_height);
+    ofDrawBitmapStringHighlight("Buffer Img",5,255);
+  
+    diffImage.draw(240,0,_width/2,_height/2);
+    drawTracking();
     //ofPopMatrix();
 //ngui.draw();
 
@@ -1291,6 +1405,7 @@ void CV::drawCameraFullScreen(){
 //--------------------------------------------------------------
 ofPixels CV::getRecordPixels()
 {
+
     return pix;
 }
 //--------------------------------------------------------------
@@ -1475,9 +1590,6 @@ void CV::guiEventCV(ofxUIEventArgs &e)
     {
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
         presence_timeout_millis = toggle->getValue();
-    }else if (e.getName() == "updateExposure"){
-//        ofxUIButton * toggle = (ofxUIButton *) e.widget;
-//        updateCamExposure();
     }
 
 }

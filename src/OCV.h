@@ -16,8 +16,6 @@
 //#include "ofxGui.h"
 #include "FlyCapture2.h"
 
-//#include "ofxMacamPs3Eye.h"
-
 //#include "ofxCv.h"
 #include "ofxCv/Utilities.h"
 #include "ofxCv/Helpers.h"
@@ -28,16 +26,13 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/video/video.hpp>
 #include <opencv2/video/background_segm.hpp>
-
 #include "ofxUI.h"
-
 
 using namespace ofxCv;
 
-//#define DEBUG
+#define DEBUG
 
 using namespace FlyCapture2;
-
 
 struct paths
 {
@@ -87,13 +82,14 @@ public:
     string getBlobData();
     bool isSomeoneThere();
     bool isSomeoneInTheLight();
+    void resetDebugVideo();
 
 
     bool newFrame();
     ofVec2f getBlobPath();
     vector <ofVec3f> getBlobsCentroid();
+   
     // Setters
-
     void setTrackingBoundaries(int x, int y, int w, int h);
     void setTrackingBoundaries(int offsetX, int offsetY);
     void setColorInverse();
@@ -103,9 +99,8 @@ public:
     void setCalibration(bool setMode);
     bool canDoCalibration;
     vector <ofVec2f> blobPath;
-
     vector <paths> blobPaths;
-
+    
     void mouseDragged(int x, int y, int button);
     void mousePressed(int x, int y, int button);
     void mouseReleased(int x, int y, int button);
@@ -120,7 +115,10 @@ public:
     ofPath      imgBlobPath;
     vector<ofPath> imgBlobPaths;
     void drawCameraFullScreen();
-
+    
+    void updateCamExposure();
+    
+    
 private:
 
     ofxUICanvas *ggui;
@@ -154,16 +152,16 @@ private:
     ofxCvFloatImage         grayFloatBg; // for the progressive learning
     ofxCvGrayscaleImage     grayWarped;
     ofxCvGrayscaleImage     grayPostWarp;
-    ofxCvShortImage     kinectGray;
+    ofxCvShortImage         kinectGray;
 
     ofxCvContourFinder      contourFinder;
     ofxCvContourFinder      imagingContourFinder;
 
-    ofxCvGrayscaleImage     diffImage;
+    ofxCvGrayscaleImage     backSubImage;
     ofxCvGrayscaleImage     threshImage;
     ofxCvGrayscaleImage     lastFrame;
     ofxCvGrayscaleImage     frameDiff;
-    ofxCvGrayscaleImage     presentImage;
+    ofxCvGrayscaleImage     backSubContourImage;
     ofxCvGrayscaleImage     virginGray;
     
     ofxCvGrayscaleImage     cleanFrameDiff;    
@@ -178,7 +176,7 @@ private:
     
     vector<ofxCvGrayscaleImage> pastImages;
     ofImage             outputImage;
-	
+    ofxCvGrayscaleImage  outputGrayscale;
 
     ofTexture           outputTex;
     bool learnBackground;
