@@ -51,19 +51,12 @@ public:
     // Specifically the PS3 eye needs releasing to ensure the locking mechanism is unlocked
     void releaseCamera();
 
-    // Loop with Brightness and Contrast
-    void subtractionLoop(bool bLearnBackground, bool useProgressiveLearn,float progressionRate,bool mirrorH,bool mirrorV,int threshold,int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation, float brightness,float contrast,bool erode,bool dilate);
-
-    // Loop without Brightness and Contrast
-    void subtractionLoop(bool bLearnBackground, bool useProgressiveLearn,float progressionRate,bool mirrorH,bool mirrorV,int threshold,int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,bool erode,bool dilate);
-
     //void JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int threshold, int blur,int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast);
     void JsubtractionLoop(bool learnBackground, bool bMirrorH, bool bMirrorV, int threshold, int moveThreshold, int fBlur, int gaussBlur, int medianBlur, int iMinBlobSize, int iMaxBlobSize,int iMaxBlobNum, bool bFillHoles, bool bUseApprox,float brightness, float contrast, bool erode, bool dilate);
     
     // Dawid's loop
     void DsubtractionLoop(bool mirrorH, bool mirrorV);
     
-    void readAndWriteBlobData(ofColor backgroundColor,ofColor shadowColor);
     void draw();
     void drawLive();
     void drawAllPaths();
@@ -90,7 +83,6 @@ public:
     vector <ofVec3f> getBlobsCentroid();
    
     // Setters
-    void setTrackingBoundaries(int x, int y, int w, int h);
     void setTrackingBoundaries(int offsetX, int offsetY);
     void setColorInverse();
     void setCVMode(int mode);
@@ -116,7 +108,8 @@ public:
     vector<ofPath> imgBlobPaths;
     void drawCameraFullScreen();
     
-    void updateCamExposure();
+    void updateCamExposure(bool state); 
+    float imgBrightness;
     
     
 private:
