@@ -10,11 +10,13 @@
 using namespace ofxCv;
 
 //--------------------------------------------------------------
-void CV::setup( int width,int height, int framerate){
+void CV::setup( int _width,int _height, int _framerate){
 
-    setupCVGui();
-    _width = width;
-    _height = height;
+   
+    width = _width;
+    height = _height;
+    framerate = _framerate;
+
     canDoCalibration = false;
     blobPaths.resize(10);
 
@@ -22,15 +24,141 @@ void CV::setup( int width,int height, int framerate){
     debugVideo.loadMovie("/root/recordings/test2.mkv");
     debugVideo.setLoopState(OF_LOOP_NORMAL);
     debugVideo.play();
-
 #else
+
+    doCameraSetup();
+    
+#endif
+
+    //Allocate the Memory for the CV processes
+   // colorImg.allocate(width*2,height*2);
+
+    cout << "Allocating Color Image" << endl;
+    grayImage.allocate(width,height);
+    cout << "Allocating Gray Image" << endl;
+    grayBg.allocate(width,height);
+    cout << "Allocating Back Image" << endl;
+    grayFloatBg.allocate(width,height);
+    cout << "Allocating Float Image" << endl;
+    grayDiff.allocate(width,height);
+    cout << "Allocating Diff Image" << endl;
+    grayWarped.allocate(width,height);
+    cout << "Allocating Warped Image" << endl;
+    lastFrame.allocate(width, height);
+    cout << "Allocating Last Image" << endl;
+    backSubImage.allocate(width,height);
+    cout << "Allocating Diff Image" << endl;
+    frameDiff.allocate(width,height);
+    cout << "Allocating Frame Diff Image" << endl;
+    threshImage.allocate(width,height);
+    cout << "Allocating Thresh Image" << endl;
+    virginGray.allocate(width,height);
+    cout << "Allocating VirginGray Image" << endl;
+    colorImage.allocate(width,height);
+
+    
+    backSubContourImage.allocate(width, height);
+    outputGrayscale.allocate(width, height);
+
+    cout << "width : " << width << " height: " << height << endl;
+    
+//    kinectGray.allocate(width*2,height*2);
+    
+    //fgrayImage.allocate(width,height);
+    //flastGrayImage.allocate(width,height);
+
+//    invbackSubImage.allocate(width,height);
+    cleanFrameDiff.allocate(width,height);
+
+    outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
+
+    outpix = new unsigned char[width*height*4];
+
+    for(int i = 0; i <width*height*4;  i++ ){
+        outpix[i] = 0;
+    }
+    backgroundTimer = 0;
+    present = true;
+    presenceTimer = 0;
+    absenceTimer = 0;
+
+    present = false;
+    pixels = new unsigned char[width*height*4];
+
+    recordFbo.allocate(width, height,GL_RGBA);
+    recordFbo.begin();
+    ofClear(0);
+    recordFbo.end();
+
+    pathFbo.allocate(width, height);
+
+    learnBackground = true;
+    startLearn = true;
+
+    offsetX = 0;
+    offsetY = 0;
+
+    srcPts[0].set(0, 0);
+    srcPts[1].set(width, 0);
+    srcPts[2].set(width, height);
+    srcPts[3].set(0, height);
+
+    dstPts[0].set(0, 0);
+    dstPts[1].set(width, 0);
+    dstPts[2].set(width, height);
+    dstPts[3].set(0, height);
+
+    cvWarpQuad.setup("Quad_");
+    cvWarpQuad.setup("Masker-Quad");
+    cvWarpQuad.setQuadPoints(srcPts);
+    cvWarpQuad.readFromFile("quad-settings.xml");
+//    cv::Ptr::  cv::BackgroundSubtractorMOG2()
+    //create Background Subtractor objects
+    //pMOG2 = new cv::BackgroundSubtractorMOG2(); //MOG2 approach
+    mog.initialize(cvSize(width, height), CV_8UC3); // (100, 16, false);
+
+    // //Dawid Variables to put into gui
+    threshold_min = 200;
+    pre_blur = 1;
+    erosion_size = 3;
+    dilation_size = 8;
+    // max_elem = 4;
+    // max_kernel_size = 11;
+    morph_size = 4; // 32
+    morph_iterations = 1;
+    post_blur = 1;
+    post_erosion_size = 1;
+    expand_size = 1;
+    expand_sigma1 = 0;
+    smooth_size = 1;
+    smooth_sigma1 = 1;
+    learningRate = -1;
+    
+
+    setupCVGui();
+    bNewFrame = false;  
+    getExposure = false;
+
+    //gui->toggleVisible();
+
+     // setupCVGui();  
+
+}
+
+void CV::resetDebugVideo(){
+#ifdef DEBUG
+    debugVideo.setPosition(0.22f);
+#endif
+}
+
+void CV::doCameraSetup(){
+
     //Camera Setup
     FC2Version fc2Version;
-
     ostringstream version;
     version << "FlyCapture2 library version: " << fc2Version.major << "." << fc2Version.minor << "." << fc2Version.type << "." << fc2Version.build;
     cout << version.str() << endl;
-
+    
     ostringstream timeStamp;
     timeStamp <<"Application build date: " << __DATE__ << " " << __TIME__;
     cout << timeStamp.str() << endl << endl;
@@ -42,7 +170,7 @@ void CV::setup( int width,int height, int framerate){
     {
         PrintError( error );
     }
-
+    
     PGRGuid guid;
     cout << "Number of cameras detected: " << numCameras << endl;
     for (unsigned int i=0; i < numCameras; i++)
@@ -54,14 +182,43 @@ void CV::setup( int width,int height, int framerate){
         }
         //RunSingleCamera( guid );
     }
-    
+
+    // cout << "Firing bus reset " << endl;
+    // error = busMgr.FireBusReset(&guid);
+    // if (error != PGRERROR_OK)   {
+    //         PrintError( error );
+    //     }else{
+    //         PrintError( error );
+    // }
+
+    // cout << "Number of cameras detected: " << numCameras << endl;
+    // for (unsigned int i=0; i < numCameras; i++)
+    // {
+    //     error = busMgr.GetCameraFromIndex(i, &guid);
+    //     if (error != PGRERROR_OK)
+    //     {
+    //         PrintError( error );
+    //     }
+    //     //RunSingleCamera( guid );
+    // }
+
+    cout << "Attempting to connect to cam " << endl;
     error = cam.Connect(&guid);
     if (error != PGRERROR_OK)
     {
         PrintError( error );
     }
 
-    error = cam.SetVideoModeAndFrameRate(VIDEOMODE_640x480Y16,FRAMERATE_60);
+    cout << "Cam connection result "  << endl;
+    PrintError( error );
+
+    // NUM_VIDEOMODES
+    cout << "Number of videomodes : " << numCameras << endl;
+
+    // error = cam.SetVideoModeAndFrameRate(VIDEOMODE_640x480Y16,FRAMERATE_60);
+    error = cam.SetVideoModeAndFrameRate(VIDEOMODE_640x480Y8,FRAMERATE_30);
+    // error = cam.SetVideoModeAndFrameRate(VIDEOMODE_320x240YUV422,FRAMERATE_30);
+
     if( error != PGRERROR_OK )
     {
         PrintError(error);
@@ -97,10 +254,10 @@ void CV::setup( int width,int height, int framerate){
 
 
     //Set Framerate to 50 (if firefly camera)
-  //  camProp.type = FRAME_RATE;
+    // camProp.type = FRAME_RATE;
     camProp.type = FRAME_RATE;
     camProp.autoManualMode = false;
-    camProp.absControl = true;
+    // camProp.absControl = true;
     camProp.onOff = true;
 
     camProp.absValue = framerate;
@@ -124,207 +281,41 @@ void CV::setup( int width,int height, int framerate){
     camProp.onOff = false;
     error = cam.SetProperty(&camProp);
     if (error != PGRERROR_OK){
-	PrintError(error);
+    PrintError(error);
     }
 
     error = cam.StartCapture();
     if (error != PGRERROR_OK)
     {
         PrintError( error );
-
     }
-
+    cout << "capture started" << endl;
     
-    error = cam.StopCapture();
-
-    error = cam.StartCapture();
-
-   // updateCamExposure(true);
-
-
-    
-#endif
-
-    //Allocate the Memory for the CV processes
-   // colorImg.allocate(width*2,height*2);
-
-    cout << "Allocating Color Image" << endl;
-    grayImage.allocate(width,height);
-    cout << "Allocating Gray Image" << endl;
-    grayBg.allocate(width,height);
-    cout << "Allocating Back Image" << endl;
-    grayFloatBg.allocate(width,height);
-    cout << "Allocating Float Image" << endl;
-    grayDiff.allocate(width,height);
-    cout << "Allocating Diff Image" << endl;
-    grayWarped.allocate(width,height);
-    cout << "Allocating Warped Image" << endl;
-    lastFrame.allocate(width, height);
-    cout << "Allocating Last Image" << endl;
-    backSubImage.allocate(width,height);
-    cout << "Allocating Diff Image" << endl;
-    frameDiff.allocate(width,height);
-    cout << "Allocating Frame Diff Image" << endl;
-    threshImage.allocate(width,height);
-    cout << "Allocating Thresh Image" << endl;
-    virginGray.allocate(width,height);
-    cout << "Allocating VirginGray Image" << endl;
-    colorImage.allocate(width,height);
-    
-    backSubContourImage.allocate(width, height);
-    outputGrayscale.allocate(width, height);
-
-    cout << "width : " << width << " height: " << height << endl;
-    
-//    kinectGray.allocate(width*2,height*2);
-    
-    //fgrayImage.allocate(width,height);
-    //flastGrayImage.allocate(width,height);
-
-//    invbackSubImage.allocate(width,height);
-    cleanFrameDiff.allocate(width,height);
-
-    outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
-
-    outpix = new unsigned char[width*height*4];
-
-    for(int i = 0; i <width*height*4;  i++ ){
-        outpix[i] = 0;
-    }
-    backgroundTimer = 0;
-    present = true;
-    presenceTimer = 0;
-    absenceTimer = 0;
-
-    present = false;
-    pixels = new unsigned char[_width*_height*4];
-
-    recordFbo.allocate(width, height,GL_RGBA);
-    recordFbo.begin();
-    ofClear(0);
-    recordFbo.end();
-
-    pathFbo.allocate(width, height);
-
-    learnBackground = true;
-    startLearn = true;
-
-    _offsetX = 0;
-    _offsetY = 0;
-
-    srcPts[0].set(0, 0);
-    srcPts[1].set(_width, 0);
-    srcPts[2].set(_width, _height);
-    srcPts[3].set(0, _height);
-
-    dstPts[0].set(0, 0);
-    dstPts[1].set(_width, 0);
-    dstPts[2].set(_width, _height);
-    dstPts[3].set(0, _height);
-
-    cvWarpQuad.setup("Quad_");
-    cvWarpQuad.setup("Masker-Quad");
-    cvWarpQuad.setQuadPoints(srcPts);
-    cvWarpQuad.readFromFile("quad-settings.xml");
-//    cv::Ptr::  cv::BackgroundSubtractorMOG2()
-    //create Background Subtractor objects
-    //pMOG2 = new cv::BackgroundSubtractorMOG2(); //MOG2 approach
-    mog.initialize(cvSize(_width, _height), CV_8UC3); // (100, 16, false);
-
-    // //Dawid Variables to put into gui
-    threshold_min = 200;
-    pre_blur = 1;
-    erosion_size = 3;
-    dilation_size = 8;
-    max_elem = 4;
-    max_kernel_size = 11;
-    morph_size = 4; // 32
-    morph_iterations = 1;
-    post_blur = 1;
-
-
-    post_erosion_size = 1;
-    expand_size = 1;
-    expand_sigma1 = 0;
-    smooth_size = 1;
-    smooth_sigma1 = 1;
-
-    learningRate = -1;
-    
-    setupCVGui();
-    //gui->toggleVisible();
+    // error = cam.StopCapture();
+    // error = cam.StartCapture();
+    // updateCamExposure(true);
 
 }
-
-void CV::resetDebugVideo(){
-#ifdef DEBUG
-    debugVideo.setPosition(0.22f);
-#endif
-}
-
 void CV::updateCamExposure(bool state){
 
-    // error = cam.StopCapture();
-    // BusManager busMgr;
-    // unsigned int numCameras;
-    // error = busMgr.GetNumOfCameras(&numCameras);
-    // if (error != PGRERROR_OK)
-    // {
-    //     PrintError( error );
-    // }
+    if(state == true){
     
-    // PGRGuid guid;
-    // for (unsigned int i=0; i < numCameras; i++)
-    // {
-    //     error = busMgr.GetCameraFromIndex(i, &guid);
-    //     if (error != PGRERROR_OK)
-    //     {
-    //         PrintError( error );
-    //     }
-    //     //RunSingleCamera( guid );
-    // }
-
-    // error = cam.Connect(&guid);
-    // if (error != PGRERROR_OK)
-    // {
-    //     PrintError( error );
-    // }
-
-    Property camProp;
-    camProp.type = AUTO_EXPOSURE;
-    camProp.onOff = state;
-    error = cam.SetProperty(&camProp);
-
-   
-    //shutter doesn't do it all by itself, we may need to adjust something else as well.
-    // camProp.type = SHUTTER;
-    // // camProp.onOff = state;
-    // error = cam.GetProperty(&camProp);
-
-    // float calculatedShutter = camProp.absValue;
-    // cout << "shutter value : " << calculatedShutter;
-    // calculatedShutter += 30;
-    // cout << " boosted shutter value : " << calculatedShutter;
+        Property camProp;
+        camProp.type = AUTO_EXPOSURE;
+        camProp.autoManualMode = true;
+        camProp.absControl = false;
+        camProp.onOff = true;
+        error = cam.SetProperty(&camProp);
     
-    // //Set Shutter
-    // camProp.type = SHUTTER;
-    // camProp.absControl = true;
-    // camProp.absValue = calculatedShutter;
-    // error = cam.SetProperty(&camProp);
-    // if (error != PGRERROR_OK){
-    //     PrintError(error);
-    // }
-
-
-    // //Set Gain
-    // camProp.type = GAIN;
-    // camProp.absControl = true;
-    // camProp.absValue = 5;
-    // error = cam.SetProperty(&camProp);
-    // if (error != PGRERROR_OK){
-    //     PrintError(error);
-    // }
-
+    }else{
+    
+        Property camProp;
+        camProp.type = AUTO_EXPOSURE;
+        camProp.autoManualMode = false;
+        camProp.absControl = false;
+        camProp.onOff = false;
+        error = cam.SetProperty(&camProp);
+    }
 }
 
 
@@ -345,8 +336,8 @@ void CV::setupCVGui(){
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "pre_blur", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 3, 0, "erosion_size", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 8, 0, "dilation_size", OFX_UI_FONT_MEDIUM));
-    ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 4, 0, "max_elem", OFX_UI_FONT_MEDIUM));
-    ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "max_kernel_size", OFX_UI_FONT_MEDIUM));
+    // ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 4, 0, "max_elem", OFX_UI_FONT_MEDIUM));
+    // ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "max_kernel_size", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 4, 0, "morph_size", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "morph_iterations", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 1, "post_blur", OFX_UI_FONT_MEDIUM));
@@ -356,8 +347,10 @@ void CV::setupCVGui(){
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "smooth_size", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "smooth_sigma1", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(-1.00f, 1.00f, 0.01f, 1, "learningRate", OFX_UI_FONT_MEDIUM));
-    ggui->addWidgetDown(new ofxUINumberDialer(0, 20, 5, 1, "frameDiffThresh", OFX_UI_FONT_MEDIUM));
+    ggui->addWidgetDown(new ofxUINumberDialer(0, 255, 5, 1, "frameDiffThresh", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 8000, 1200, 1, "presenceTimeoutMillis", OFX_UI_FONT_MEDIUM));
+    ggui->addWidgetDown(new ofxUINumberDialer(0, 8000, 1200, 1, "maxBrightnessDiff", OFX_UI_FONT_MEDIUM));
+
     // ggui->addButton("updateExposure", false);
     ggui->addToggle("T1", false, 44, 44);
     ggui->autoSizeToFitWidgets();
@@ -372,12 +365,13 @@ void CV::setupCVGui(){
 //--------------------------------------------------------------
 void CV::releaseCamera()
 {
+
     #ifndef DEBUG
         error = cam.StopCapture();
         if (error != PGRERROR_OK){
             PrintError( error );
         }else{
-            PrintError( error );
+           cout << "capture stopped " << endl;
         }
 
         // Disconnect the camera
@@ -385,7 +379,7 @@ void CV::releaseCamera()
         if (error != PGRERROR_OK){
             PrintError( error );
         }else{
-            PrintError( error );
+            cout << "cam disconnected " << endl;
         }
     #endif
 }
@@ -393,12 +387,13 @@ void CV::releaseCamera()
 //--------------------------------------------------------------
 void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
 {
-    bool bNewFrame = false;
+    bNewFrame = false;
 
 #ifdef DEBUG
     debugVideo.update();
     bNewFrame = debugVideo.isFrameNew();
 #else
+    cout << "getting frame from cam " << endl;
     error = cam.RetrieveBuffer( &rawImage );
     if (error != PGRERROR_OK)
         {
@@ -413,18 +408,18 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     #ifdef DEBUG
         colorImage.resize(debugVideo.getWidth(),debugVideo.getHeight());
         colorImage.setFromPixels(debugVideo.getPixels(), debugVideo.getWidth(),debugVideo.getHeight());
-        colorImage.resize(_width, _height);
+        colorImage.resize(width, height);
         grayImage = colorImage;
         virginGray = grayImage;
     #else
         grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
         grayImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows());
-        grayImage.resize(_width, _height);
+        grayImage.resize(width, height);
         virginGray = grayImage;
     #endif
     //Warping
     // We get back the warped coordinates - scaled to our camera size
-    ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(_width, _height);
+    ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(width, height);
     // Lets warp with those cool coordinates!!!!!
     grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
     // Lets calculate the openCV matrix for our coordWarping
@@ -500,7 +495,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     //use the unthresholded frame diff
     unsigned char * frameDiffPix = cleanFrameDiff.getPixels();
     
-    for (int i = 0; i < _width*_height; i ++){
+    for (int i = 0; i < width*height; i ++){
         
         if(backgroundSubPix[i] > imgThreshold){
             outpix[i] = backgroundSubPix[i]*3;
@@ -511,7 +506,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
         }
     }
     
-    outputGrayscale.setFromPixels(outpix, _width, _height);
+    outputGrayscale.setFromPixels(outpix, width, height);
     
     if(dilate){
         outputGrayscale.dilate();
@@ -523,7 +518,7 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
     
 
     //change this to a ofxcvgrayscaleimage
-    //outputImage.setFromPixels(outpix, _width, _height, OF_IMAGE_GRAYSCALE);
+    //outputImage.setFromPixels(outpix, width, height, OF_IMAGE_GRAYSCALE);
     
     
     //Draw to the FBO
@@ -534,8 +529,8 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 //         ofSetColor(255);
 // //      ofFill();
         
-//         ofRect(0, 0, _width, _height);
-//         outputGrayscale.draw(0, 0, _width,_height);
+//         ofRect(0, 0, width, height);
+//         outputGrayscale.draw(0, 0, width,height);
         
 //         for (int i = 0; i < imagingContourFinder.nBlobs; i++)
 //         {
@@ -549,10 +544,10 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 //          }
     
 //         // ofSetColor(255, 255, 255);
-//         //outputImage.draw(0, 0, _width,_height);
+//         //outputImage.draw(0, 0, width,height);
         
-//         // glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-//         glReadPixels(0, 0, _width, _height, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixels);
+//         // glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+//         glReadPixels(0, 0, width, height, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixels);
 //         ofPopStyle();
 //     recordFbo.end();
 
@@ -560,14 +555,15 @@ void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int im
 
 
     // imgBrightness = 0;
-    // for(int i =0; i < _width*_height; i++){
+    // for(int i =0; i < width*height; i++){
     //         imgBrightness += pixels[i]/255;
     // }
-    // pix.setFromPixels(pixels, _width, _height, 1);
-    pix.setFromPixels(outputGrayscale.getPixels(), _width, _height, 1);
+    // pix.setFromPixels(pixels, width, height, 1);
+    pix.setFromPixels(outputGrayscale.getPixels(), width, height, 1);
 
     lastFrame = virginGray;
     lastFrame.blurMedian(medianBlur);
+
     }
 }
 //--------------------------------------------------------------
@@ -579,13 +575,20 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
     //  Negative parameter value makes the algorithm to use some automatically chosen learning rate. 
     // 0 means that the background model is not updated at all, 1 means that the background model is completely reinitialized from the last frame.
 
+    //Stop getting exposure
+    if(getExposure && ofGetElapsedTimeMillis() > exposureTimer){
+        getExposure = false;
+        cout << "stopping exposure " << endl;
+        updateCamExposure(getExposure);
+    }
+
     int w = 320;
     int h = 240;
-    //_width = 808;
-    //_height = 608;
+    //width = 808;
+    //height = 608;
     // --
     //cout << threshold_min << endl;
-    bool bNewFrame = false;
+    bNewFrame = false;
 
 #ifdef DEBUG
     
@@ -593,51 +596,94 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
     bNewFrame = debugVideo.isFrameNew();
 
 #else
-     error = cam.RetrieveBuffer( &rawImage );
-        if (error != PGRERROR_OK)
-        {
+     if(cam.IsConnected()){
+        error = cam.RetrieveBuffer( &rawImage );
+        
+        if (error != PGRERROR_OK){
             PrintError( error );
         }
-    //vidGrabber.update();
-    bNewFrame = true; //vidGrabber.isFrameNew();
+
+        bNewFrame = true; 
+
+    }else{
+        doCameraSetup();
+    }
 
 #endif
-
-    if (bNewFrame){
+    //Dont run processing while we're getting exposure 
+    if (bNewFrame && !getExposure){
 
         #ifdef DEBUG
         colorImage.resize(debugVideo.getWidth(),debugVideo.getHeight());
         colorImage.setFromPixels(debugVideo.getPixels(),debugVideo.getWidth(),debugVideo.getHeight());
-        colorImage.resize(_width, _height);
-       
+        colorImage.resize(width, height);
+        grayImage = colorImage;
+    
     #else
 
         grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
         grayImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows());
-        grayImage.resize(_width, _height);
-        //cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
+        grayImage.resize(width, height);
+        // cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
+        // cout << "system set to "  << width << ", " << height << endl;
         //cv::cvtColor(grayImage, colorImage, cv::COLOR_GRAY2BGR);
-        colorImage.setFromGrayscalePlanarImages(grayImage, grayImage, grayImage);
-
+        // colorImage.setFromGrayscalePlanarImages(grayImage, grayImage, grayImage);
     #endif
-        colorImage.mirror(mirrorV, mirrorH);
-        grayImage = colorImage;
+
         frameDiff = grayImage;
-	     
-        cv::Mat origFrameMat = cv::Mat(colorImage.getCvImage());
-        cv::Mat frameMat = cv::Mat(colorImage.getCvImage());
+        frameDiff.absDiff(lastFrame);
+        frameDiff.threshold(frame_diff_thresh);
+
+        //Frame diff Contour Finder - for decteing presence
+        //contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
+        contourFinder.findContours(frameDiff, 50, 50000, 1,false,true);
+
+        //Save the last frame
+        lastFrame = grayImage;
+
+        //Calling only once to save calculations
+        bool someoneInLight = isSomeoneInTheLight();
+
+        //Is someone in the light is a function that checks the contourfinder, and is broken out so that it can be called from ofApp.cpp
+        if( !someoneInLight && ofGetElapsedTimeMillis() - backgroundTimer > presence_timeout_millis){
+
+                    //start getting exposure - but only after we've had someone present
+                    //this should maybe happen long after people have left
+                    //but lets run this for a while now
+                    if(getExposure == false && present){
+                        cout << "getting exposure " << endl;
+                        getExposure = true;
+                        exposureTimer = ofGetElapsedTimeMillis() + 1000;
+                        updateCamExposure(getExposure);
+                    }
+                   present = false;
+        }
+        
+        //this is not an else-if because we want to always be resetting the timer when someone is prsent,
+        if( someoneInLight ){
+
+                backgroundTimer = ofGetElapsedTimeMillis();
+                //While Present
+                present = true;
+                //absenceTimer = ofGetElapsedTimeMillis() + 5000;
+        }
+
+        cv::Mat origFrameMat = cv::Mat(grayImage.getCvImage());
+        cv::Mat frameMat = cv::Mat(grayImage.getCvImage());
+
+        // cv::Mat origFrameMat = cv::Mat(colorImage.getCvImage());
+        // cv::Mat frameMat = cv::Mat(colorImage.getCvImage());
 
         cv::resize(origFrameMat, origFrameMat, cv::Size(w,h));
         cv::resize(frameMat, frameMat, cv::Size(w,h));
 
+        // cv::Mat diffMat = cv::Mat(frameDiff.getCvImage());
+        // cv::resize(diffMat, diffMat, cv::Size(w,h));
+        // cv::addWeighted(frameMat, 0.5, diffMat, 0.5, 0.0, frameMat);
+
         // pre blur
         cv::medianBlur(frameMat, frameMat, pre_blur);
 
-    	// if(isSomeoneInTheLight() ){
-    	// 	learningRate = 0;
-    	// }else{
-    	// 	learningRate = 0.5;
-    	// }
 
        	mog( frameMat, fgMaskMOG2, learningRate );
 
@@ -677,56 +723,59 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 
         cv::medianBlur(maskOut, maskOut, post_blur);
 
+
         cv::Mat mask1 = cv::Mat(h, w, CV_8UC1);
         mask1 = cv::Scalar::all(0);
         maskOut.copyTo(mask1);
+
 
         //cv::Mat mask2 = cv::Mat(h, w, CV_8UC1);
         //mask2 = cv::Scalar::all(0);
         //maskOut.copyTo(mask2);
        // mask2 = cv::Scalar::all(0);
 
-        cv::Mat bw;
-        maskOut.copyTo(bw);
 
-        std::vector<std::vector<cv::Point> > contours;
-        cv::Mat cont_hierarchy;
-        cv::findContours(bw, contours, cont_hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+        //This contour finder doesn't seem to add anything
+//         cv::Mat bw;
+//         maskOut.copyTo(bw);
 
-        std::vector<std::vector<cv::Point> > approx( contours.size() );
-        //  std::vector<std::vector<cv::Point> > hull( contours.size() );
-        for (size_t idx = 0; idx < contours.size(); idx++) {
-//            cv::vector<cv::Point> approx;
-            cv::approxPolyDP( cv::Mat(contours[idx]),
-                              approx[idx],
-                              cv::arcLength(cv::Mat(contours[idx]), true)*0.02, true );
+//         std::vector<std::vector<cv::Point> > contours;
+//         cv::Mat cont_hierarchy;
+//         cv::findContours(bw, contours, cont_hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-            // Skip small or non-convex objects
-            int minContArea = 100;
-//            if (std::fabs(cv::contourArea(contours[idx])) < minContArea || !cv::isContourConvex(contours[idx]))
-//                continue;
-            cv::drawContours(maskOut, approx, idx, cv::Scalar(255), -1);
-    //        cv::convexHull(cv::Mat(approx[idx]), hull[idx]);
-//            int minContArea = 100;
-//            if (std::fabs(cv::contourArea(hull[idx])) < minContArea)
-//                continue;
-  //          cv::drawContours(mask2, hull, idx, cv::Scalar(255), -1);
-        }
+//         std::vector<std::vector<cv::Point> > approx( contours.size() );
+//         //  std::vector<std::vector<cv::Point> > hull( contours.size() );
+//         for (size_t idx = 0; idx < contours.size(); idx++) {
+// //            cv::vector<cv::Point> approx;
+//             cv::approxPolyDP( cv::Mat(contours[idx]),
+//                               approx[idx],
+//                               cv::arcLength(cv::Mat(contours[idx]), true)*0.02, true );
 
-        cv::GaussianBlur(maskOut, maskOut, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
+//             // Skip small or non-convex objects
+//             int minContArea = 100;
+// //            if (std::fabs(cv::contourArea(contours[idx])) < minContArea || !cv::isContourConvex(contours[idx]))
+// //                continue;
+//             cv::drawContours(maskOut, approx, idx, cv::Scalar(255), -1);
+//     //        cv::convexHull(cv::Mat(approx[idx]), hull[idx]);
+// //            int minContArea = 100;
+// //            if (std::fabs(cv::contourArea(hull[idx])) < minContArea)
+// //                continue;
+//   //          cv::drawContours(mask2, hull, idx, cv::Scalar(255), -1);
+//         }
+
+        // cv::GaussianBlur(maskOut, maskOut, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
 /*      cv::GaussianBlur(mask2, mask2, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
         mask2.convertTo(mask2, CV_32FC1);
         cv::GaussianBlur(mask2, mask2, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
 */
-
-	    //Generate a white image
+	    
+        //Generate a white image
         cv::Mat whiteMat = cv::Mat(origFrameMat.size(),CV_32FC1);
         whiteMat = cv::Scalar::all(1.0);
 
         /*
         * Prepare keyOut
         */
-
         cv::GaussianBlur(mask1, mask1, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
         mask1.convertTo(mask1, CV_32FC1);
 
@@ -735,80 +784,57 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         if (keyOut.rows < origFrameMat.rows || keyOut.cols < origFrameMat.cols) {
             keyOut = cv::Mat(origFrameMat.size(),CV_32FC1);
         }
-
-	//multiply the white image by the mask image
+ 
+ 	    //multiply the white image by the mask image
         keyOut = whiteMat.mul(mask1);
 
-	//convert to 8 bit single-channel array
+    	//convert to 8 bit single-channel array
         keyOut.convertTo(keyOut, CV_8UC1);
 
         //subtract(src1, src2, destination)
-	   //subtract the key from a black white image
-	   cv::subtract(cv::Scalar::all(255),keyOut,keyOut);
+	    //subtract the key from a black white image
+	    cv::subtract(cv::Scalar::all(255),keyOut,keyOut);
 
-	//we're skipping this for now i'm not sure why
+	    //we're skipping this for now i'm not sure why
         /*
          * Prepare keyOut2
          */
         /*
-	if (keyOut2.rows < origFrameMat.rows || keyOut2.cols < origFrameMat.cols) {
+	    if (keyOut2.rows < origFrameMat.rows || keyOut2.cols < origFrameMat.cols) {
             keyOut2 = cv::Mat(origFrameMat.size(),CV_32FC1);
         }
         keyOut2 = whiteMat.mul(mask2);
         keyOut2.convertTo(keyOut2, CV_8UC1);
         cv::subtract(cv::Scalar::all(255),keyOut2,keyOut2);
-	*/
+	    */
 
-	//This section dectects presence to see if we should record the images we're capturing
+	    //This section dectects presence to see if we should record the images we're capturing
         //Calculate frame difference
-        frameDiff.absDiff(lastFrame);
-        frameDiff.threshold(frame_diff_thresh);
-
-        //Frame diff Contour Finder - for decteing presence
-        //contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
-        contourFinder.findContours(frameDiff, 50, 9999999, 5,false,true);
-
-	//Save the last frame
-	lastFrame = grayImage;
-
-	//Calling only once to save calculations
-	bool someoneInLight = isSomeoneInTheLight();
-
-	//Is someone in the light is a function that checks the contourfinder, and is broken out so that it can be called from ofApp.cpp
-	if( !someoneInLight && ofGetElapsedTimeMillis() - backgroundTimer > presence_timeout_millis){
-               present = false;
-        }
-	//this is not an else-if because we want to always be resetting the timer when someone is prsent,
-        if( someoneInLight ){
-                backgroundTimer = ofGetElapsedTimeMillis();
-                //While Present
-                present = true;
-                //absenceTimer = ofGetElapsedTimeMillis() + 5000;
-            }
-
+        
 	//Draw Mat to get pixels
 	//This seems a bit much
 /*        recordFbo.begin();
            ofSetColor(255, 255, 255);
-           //drawMat(keyOut2, 0, 20,_width/2,_height/2);
-           drawMat( keyOut , 0,0 ,_width,_height);
-           glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+           //drawMat(keyOut2, 0, 20,width/2,height/2);
+           drawMat( keyOut , 0,0 ,width,height);
+           glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         recordFbo.end();
 */
         //  pix.resize(808,608);
-	float b= 0;
+    lastBrightness = imgBrightness;
+    imgBrightness = 0;
 
 	for(int x =0; x < keyOut.rows; x++){
 		for(int y = 0; y < keyOut.cols; y++){
-			b += keyOut.ptr<uchar>(y)[x]/255;
+			imgBrightness += keyOut.ptr<uchar>(y)[x]/255;
 		}
 	}
 
-//	cout << "brightness :" << b << endl;
+    if(abs(lastBrightness-imgBrightness) < maxBrightnessDiff){
+        pix.setFromPixels(keyOut.data, width, height, 1);
+    }
 
-	pix.setFromPixels(keyOut.data, _width, _height, 1);
-
-//     pix.setFromPixels(pixels, _width, _height, 4);
+//     pix.setFromPixels(pixels, width, height, 4);
 
    //  pix.resize(320, 240);
         //bool ofPixels_::resize(int dstWidth, int dstHeight, ofInterpolationMethod interpMethod=OF_INTERPOLATE_NEAREST_NEIGHBOR)
@@ -818,14 +844,16 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 
 
 //--------------------------------------------------------------
-bool CV::newFrame()
-{
-#ifdef DEBUG
-    return debugVideo.isFrameNew();
-#else
-    return true;
-   //return vidGrabber.isFrameNew();
-#endif
+bool CV::isFrameNew(){
+
+    #ifdef DEBUG
+        return debugVideo.isFrameNew();
+    #else
+        return bNewFrame;
+        // return true;
+       //return vidGrabber.isFrameNew();
+    #endif
+
 }
 //--------------------------------------------------------------
 bool CV::isSomeoneThere()
@@ -840,10 +868,10 @@ bool CV::isSomeoneThere()
     }
 }
 //--------------------------------------------------------------
-void CV::setTrackingBoundaries(int offsetX, int offsetY)
+void CV::setTrackingBoundaries(int _offsetX, int _offsetY)
 {
-    _offsetX = offsetX;
-    _offsetY = offsetY;
+    offsetX = _offsetX;
+    offsetY = _offsetY;
 }
 //--------------------------------------------------------------
 bool CV::isSomeoneInTheLight()
@@ -852,7 +880,7 @@ bool CV::isSomeoneInTheLight()
     {
         for (int i = 0; i < contourFinder.nBlobs; i++)
         {
-            if (contourFinder.blobs[i].centroid.x >= _offsetX && contourFinder.blobs[i].centroid.x <= _width-(_offsetX) && contourFinder.blobs[i].centroid.y >= _offsetY && contourFinder.blobs[i].centroid.y <= _height-(_offsetY))
+            if (contourFinder.blobs[i].centroid.x >= offsetX && contourFinder.blobs[i].centroid.x <= width-(offsetX) && contourFinder.blobs[i].centroid.y >= offsetY && contourFinder.blobs[i].centroid.y <= height-(offsetY))
             {
                 return true;
             }
@@ -914,20 +942,20 @@ void CV::drawCalibration()
     ofPushStyle();
     ofSetColor(255);
     ofPushMatrix();
-    ofTranslate(ofGetWidth()-_width*2, ofGetHeight()-_height);
-    virginGray.draw(0, 0,_width,_height);
+    ofTranslate(ofGetWidth()-width*2, ofGetHeight()-height);
+    virginGray.draw(0, 0,width,height);
     ofDrawBitmapStringHighlight("Warper",0+5,15);
     ofSetColor(255);
-    grayWarped.draw(_width,0,_width,_height);
-    ofDrawBitmapStringHighlight("Warped Img",_width+5,15);
+    grayWarped.draw(width,0,width,height);
+    ofDrawBitmapStringHighlight("Warped Img",width+5,15);
 
     if (canDoCalibration == true)
     {
-        cvWarpQuad.draw(0, 0, _width, _height,0,255,0,2);
+        cvWarpQuad.draw(0, 0, width, height,0,255,0,2);
     }
     else
     {
-        cvWarpQuad.draw(0, 0, _width, _height,255,0,0,2);
+        cvWarpQuad.draw(0, 0, width, height,255,0,0,2);
     }
 
     ofPopStyle();
@@ -962,12 +990,12 @@ void CV::drawTracking()
 {
     ofPushMatrix();
     ofPushStyle();
-    ofTranslate(ofGetWidth()-_width*2, 0);
+    ofTranslate(ofGetWidth()-width*2, 0);
     ofSetColor(0, 0, 0);
     ofFill();
-    //ofRect(0, 0, _width, _height);
+    //ofRect(0, 0, width, height);
     //ofSetColor(255, 255, 255);
-    contourFinder.draw(0,0,_width,_height);
+    contourFinder.draw(0,0,width,height);
 
     ofNoFill();
     if (isSomeoneInTheLight()) {
@@ -977,7 +1005,7 @@ void CV::drawTracking()
     {
         ofSetColor(255,25,0);
     }
-    ofRect(_offsetX,_offsetY,_width-(_offsetX*2),_height-(_offsetY*2));
+    ofRect(offsetX,offsetY,width-(offsetX*2),height-(offsetY*2));
 
     ofSetColor(255, 255, 255);
 
@@ -1005,18 +1033,19 @@ void CV::drawTracking()
     ofPopStyle();
     ofPopMatrix();
 
-    ofDrawBitmapStringHighlight("Image Brightness : " + ofToString(imgBrightness), 0, 170);
-
+    float brightnessDiff = imgBrightness - lastBrightness;
+    ofDrawBitmapStringHighlight("Image Brightness : " + ofToString(imgBrightness) + " Brightness diff : " + ofToString(brightnessDiff), 0, 170);
+    
 }
 //--------------------------------------------------------------
 void CV::drawLive()
 {
     
 //    ofSetColor(255);
-//    ofDrawBitmapStringHighlight("Live",ofGetWidth()-_width+5,15);
-//    grayImage.draw(ofGetWidth()-_width,0,_width,_height);
+//    ofDrawBitmapStringHighlight("Live",ofGetWidth()-width+5,15);
+//    grayImage.draw(ofGetWidth()-width,0,width,height);
 //    ofPushMatrix();
-//    ofTranslate(ofGetWidth()-_width, 0);
+//    ofTranslate(ofGetWidth()-width, 0);
 //    ofBeginShape();
 //    ofNoFill();
 //    ofSetColor(255, 0, 0);
@@ -1038,7 +1067,7 @@ void CV::draw()
 
     drawCalibration();
     //ofPushMatrix();
-    //ofTranslate(0, _height);
+    //ofTranslate(0, height);
     ofFill();
     ofSetColor(255);
     
@@ -1048,85 +1077,85 @@ void CV::draw()
     ofPushMatrix();
     ofTranslate(x, y);
     ofDrawBitmapStringHighlight("outputGrayscale",5,15);
-    outputGrayscale.draw(0,20,_width/2,_height/2);
+    outputGrayscale.draw(0,20,width/2,height/2);
     ofPopMatrix();
-    x += _width/2;
+    x += width/2;
     
     
     ofPushMatrix();
     ofTranslate(x, y);
     ofDrawBitmapStringHighlight("grayImage",5,15);
-    grayImage.draw(0,20,_width/2,_height/2);
+    grayImage.draw(0,20,width/2,height/2);
     ofPopMatrix();
-    x += _width/2;
+    x += width/2;
     
     ofPushMatrix();
     ofTranslate(x, y);
     ofDrawBitmapStringHighlight("grayBg",5,15);
-    grayBg.draw(0,20,_width/2,_height/2);
+    grayBg.draw(0,20,width/2,height/2);
     ofPopMatrix();
-    x += _width/2;
+    x += width/2;
     
     ofPushMatrix();
     ofTranslate(x, y);
     ofDrawBitmapStringHighlight("frameDiff",5,15);
-    frameDiff.draw(0,20,_width/2,_height/2);
+    frameDiff.draw(0,20,width/2,height/2);
     ofPopMatrix();
-    x += _width/2;
+    x += width/2;
     
     ofPushMatrix();
     ofTranslate(x, y);
     ofDrawBitmapStringHighlight("backSubImage",5,15);
-    backSubImage.draw(0,20,_width/2,_height/2);
+    backSubImage.draw(0,20,width/2,height/2);
     ofPopMatrix();
-    x += _width/2;
+    x += width/2;
     
     
     
     ofPushMatrix();
     ofTranslate(x, y);
     ofDrawBitmapStringHighlight("fgMask",5,15);
-    drawMat(fgMaskMOG2, 0, 20,_width/2,_height/2);
+    drawMat(fgMaskMOG2, 0, 20,width/2,height/2);
     ofPopMatrix();
-//    x += _width/2;
+//    x += width/2;
     
     
     ofPushMatrix();
-    ofTranslate(x, y + _height/2 + 20);
+    ofTranslate(x, y + height/2 + 20);
     ofDrawBitmapStringHighlight("bgMat",5,15);
-    drawMat(bgMat, 0, 20,_width/2,_height/2);
+    drawMat(bgMat, 0, 20,width/2,height/2);
     ofPopMatrix();
-    x += _width/2;
+    x += width/2;
     
     ofPushMatrix();
     ofTranslate(x, y);
     ofDrawBitmapStringHighlight("maskOut",5,15);
-    drawMat(maskOut, 0, 20,_width/2,_height/2);
+    drawMat(maskOut, 0, 20,width/2,height/2);
     ofPopMatrix();
 
     
     ofPushMatrix();
-    ofTranslate(x, y + _height/2 + 20);
+    ofTranslate(x, y + height/2 + 20);
     ofDrawBitmapStringHighlight("keyOut",5,15);
-    drawMat(keyOut, 0, 20,_width,_height);
+    drawMat(keyOut, 0, 20,width,height);
     ofPopMatrix();
     
     ofPushMatrix();
-    ofTranslate(x, y + (_height+ 20)*2);
+    ofTranslate(x, y + (height+ 20)*2);
     ofDrawBitmapStringHighlight("keyOut2",5,15);
-    drawMat(keyOut2, 0, 20,_width,_height);
+    drawMat(keyOut2, 0, 20,width,height);
     ofPopMatrix();
     
   
    
-    virginGray.draw(ofGetWidth() - 2*_width,0,_width,_height);
-    ofDrawBitmapStringHighlight("Virgin Gray",ofGetWidth() - 2*_width, 15);
+    virginGray.draw(ofGetWidth() - 2*width,0,width,height);
+    ofDrawBitmapStringHighlight("Virgin Gray",ofGetWidth() - 2*width, 15);
     //Draws on top of Virgin Gray
     drawTracking();
     
     
-    recordFbo.draw(ofGetWidth()- 2*_width,_height,_width,_height);
-    ofDrawBitmapStringHighlight("Record Fbo",ofGetWidth() - 2*_width, _height+15);
+    recordFbo.draw(ofGetWidth()- 2*width,height,width,height);
+    ofDrawBitmapStringHighlight("Record Fbo",ofGetWidth() - 2*width, height+15);
 
    
     
@@ -1167,11 +1196,11 @@ ofVec2f CV::getBlobPath()
 }
 //--------------------------------------------------------------
 void CV::mouseDragged(int x, int y, int button){
-    cvWarpQuad.updatePoint(x, y, 0,0,_width,_height);
+    cvWarpQuad.updatePoint(x, y, 0,0,width,height);
 }
 //--------------------------------------------------------------
 void CV::mousePressed(int x, int y, int button){
-    cvWarpQuad.selectPoint(x, y,0,0,_width,_height,30);
+    cvWarpQuad.selectPoint(x, y,0,0,width,height,30);
 
 }
 //--------------------------------------------------------------
@@ -1226,7 +1255,6 @@ void CV::exit()
     //gui.saveToFile("camera_settings.xml");
     ggui->saveSettings("GUI/CVSettings.xml");
     //delete gui;
-    
 }
 
 
@@ -1328,13 +1356,18 @@ void CV::guiEventCV(ofxUIEventArgs &e)
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
         presence_timeout_millis = toggle->getValue();
     }else if (e.getName() == "T1"){
-
+    
         ofxUIButton *button = (ofxUIButton *) e.widget; 
         cout << "value: " << button->getValue() << endl;         
-
-//        ofxUIButton * toggle = (ofxUIButton *) e.widget;
-        // cout << "updating cam exposture" << endl;
-         updateCamExposure(button->getValue());
+        //ofxUIButton * toggle = (ofxUIButton *) e.widget;
+        //cout << "updating cam exposture" << endl;
+        //updateCamExposure(button->getValue());
+    
+    }else if( e.getName() == "maxBrightnessDiff"){
+    
+        ofxUINumberDialer * num = (ofxUINumberDialer *) e.widget;
+        maxBrightnessDiff = num->getValue();
+    
     }
 
 }

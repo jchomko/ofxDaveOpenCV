@@ -30,7 +30,7 @@
 
 using namespace ofxCv;
 
-#define DEBUG
+// #define DEBUG
 
 using namespace FlyCapture2;
 
@@ -77,8 +77,8 @@ public:
     bool isSomeoneInTheLight();
     void resetDebugVideo();
 
-
-    bool newFrame();
+    bool bNewFrame;
+    bool isFrameNew();
     ofVec2f getBlobPath();
     vector <ofVec3f> getBlobsCentroid();
    
@@ -109,8 +109,12 @@ public:
     void drawCameraFullScreen();
     
     void updateCamExposure(bool state); 
-    float imgBrightness;
     
+    int framerate;
+    void doCameraSetup();
+
+    float imgBrightness;
+    float lastBrightness;
     
 private:
 
@@ -124,10 +128,10 @@ private:
     guiQuad cvWarpQuad;
     coordWarping coordWarp;
 
-    int _width;
-    int _height;
-    int _offsetX;
-    int _offsetY;
+    int width;
+    int height;
+    int offsetX;
+    int offsetY;
     ofFbo recordFbo;
     ofPixels pix;
     //vector<ofVec3f>centroids;
@@ -182,6 +186,9 @@ private:
     long presenceTimer;
     unsigned char * outpix;
     unsigned char * pixels;
+    long exposureTimer;
+    bool getExposure;
+
 
     //Dawid CV Variables
     // ofxPanel ngui;
@@ -221,5 +228,5 @@ private:
     double learningRate;
     int frame_diff_thresh;
     int presence_timeout_millis;
-
+    int maxBrightnessDiff;
 };
