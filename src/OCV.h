@@ -30,7 +30,7 @@
 
 using namespace ofxCv;
 
-// #define DEBUG
+ #define DEBUG
 
 using namespace FlyCapture2;
 
@@ -43,6 +43,7 @@ struct paths
 class CV : public ofBaseApp {
 
 public:
+       
     void setup(int width, int height, int framerate);
 
     // Camera Calibration
@@ -170,7 +171,10 @@ private:
     cv::Mat keyOut3;
     cv::Mat keyOut4;
     cv::BackgroundSubtractorMOG2 mog;
-    
+    // cv::Ptr<cv::BackgroundSubtractor> pBackSub;
+
+    // cv::BackgroundSubtractorGSOC gsoc;
+
     vector<ofxCvGrayscaleImage> pastImages;
     ofImage             outputImage;
     ofxCvGrayscaleImage  outputGrayscale;

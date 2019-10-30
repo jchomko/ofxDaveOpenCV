@@ -20,6 +20,12 @@ void CV::setup( int _width,int _height, int _framerate){
     canDoCalibration = false;
     blobPaths.resize(10);
 
+     cout << "OpenCV version : " << CV_VERSION << endl;
+      cout << "Major version : " << CV_MAJOR_VERSION << endl;
+      cout << "Minor version : " << CV_MINOR_VERSION << endl;
+      cout << "Subminor version : " << CV_SUBMINOR_VERSION << endl;
+     
+
 #ifdef DEBUG
     debugVideo.loadMovie("/root/recordings/test2.mkv");
     debugVideo.setLoopState(OF_LOOP_NORMAL);
@@ -115,6 +121,9 @@ void CV::setup( int _width,int _height, int _framerate){
 //    cv::Ptr::  cv::BackgroundSubtractorMOG2()
     //create Background Subtractor objects
     //pMOG2 = new cv::BackgroundSubtractorMOG2(); //MOG2 approach
+    // gsoc = new cv::BackgroundSubtractorGSOC();
+    // mog = new cv::BackgroundSubtractorMOG2();
+    // pBackSub = cv::createBackgroundSubtractorMOG2();
     mog.initialize(cvSize(width, height), CV_8UC3); // (100, 16, false);
 
     // //Dawid Variables to put into gui
@@ -688,6 +697,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
        	mog( frameMat, fgMaskMOG2, learningRate );
 
         mog.getBackgroundImage(bgMat);
+        
         fgMaskMOG2.copyTo(maskOut);
 
         cv::threshold(maskOut, maskOut, threshold_min, 255, cv::THRESH_BINARY); // value around 200 removes shadows
