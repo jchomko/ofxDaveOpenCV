@@ -6,8 +6,8 @@
 //--------------------------------------------------------------
 
 #include "OCV.h"
-
-using namespace ofxCv;
+// using namespace ofxCv;
+// using namespace cv;
 
 //--------------------------------------------------------------
 void CV::setup( int _width,int _height, int _framerate){
@@ -20,16 +20,20 @@ void CV::setup( int _width,int _height, int _framerate){
     canDoCalibration = false;
     blobPaths.resize(10);
 
-     cout << "OpenCV version : " << CV_VERSION << endl;
-      cout << "Major version : " << CV_MAJOR_VERSION << endl;
-      cout << "Minor version : " << CV_MINOR_VERSION << endl;
-      cout << "Subminor version : " << CV_SUBMINOR_VERSION << endl;
+    cout << "OpenCV version : " << CV_VERSION << endl;
+    cout << "Major version : " << CV_MAJOR_VERSION << endl;
+    cout << "Minor version : " << CV_MINOR_VERSION << endl;
+    cout << "Subminor version : " << CV_SUBMINOR_VERSION << endl;
      
 
 #ifdef DEBUG
-    debugVideo.loadMovie("/root/recordings/test2.mkv");
+
+    cout << "loading dbug video " << endl;
+    debugVideo.load("/root/recordings/test2.mkv");
     debugVideo.setLoopState(OF_LOOP_NORMAL);
+    // debugVideo.setPosition(0.22);
     debugVideo.play();
+
 #else
 
     doCameraSetup();
@@ -39,32 +43,33 @@ void CV::setup( int _width,int _height, int _framerate){
     //Allocate the Memory for the CV processes
    // colorImg.allocate(width*2,height*2);
 
-    cout << "Allocating Color Image" << endl;
-    grayImage.allocate(width,height);
-    cout << "Allocating Gray Image" << endl;
-    grayBg.allocate(width,height);
-    cout << "Allocating Back Image" << endl;
-    grayFloatBg.allocate(width,height);
-    cout << "Allocating Float Image" << endl;
-    grayDiff.allocate(width,height);
-    cout << "Allocating Diff Image" << endl;
-    grayWarped.allocate(width,height);
-    cout << "Allocating Warped Image" << endl;
-    lastFrame.allocate(width, height);
-    cout << "Allocating Last Image" << endl;
-    backSubImage.allocate(width,height);
-    cout << "Allocating Diff Image" << endl;
-    frameDiff.allocate(width,height);
-    cout << "Allocating Frame Diff Image" << endl;
-    threshImage.allocate(width,height);
-    cout << "Allocating Thresh Image" << endl;
-    virginGray.allocate(width,height);
-    cout << "Allocating VirginGray Image" << endl;
-    colorImage.allocate(width,height);
+    // cout << "Allocating Color Image" << endl;
+    // grayImage.allocate(width,height);
+    // cout << "Allocating Gray Image" << endl;
+    // grayBg.allocate(width,height);
+    // cout << "Allocating Back Image" << endl;
+    // grayFloatBg.allocate(width,height);
+    // cout << "Allocating Float Image" << endl;
+    // grayDiff.allocate(width,height);
+    // cout << "Allocating Diff Image" << endl;
+    // grayWarped.allocate(width,height);
+    // cout << "Allocating Warped Image" << endl;
+    // lastFrame.allocate(width, height);
+    // cout << "Allocating Last Image" << endl;
+    // backSubImage.allocate(width,height);
+    // cout << "Allocating Diff Image" << endl;
+    // frameDiff.allocate(width,height);
+    // cout << "Allocating Frame Diff Image" << endl;
+    // threshImage.allocate(width,height);
+    // cout << "Allocating Thresh Image" << endl;
+    // virginGray.allocate(width,height);
+    // cout << "Allocating VirginGray Image" << endl;
+    // colorImage.allocate(width,height);
 
-    
-    backSubContourImage.allocate(width, height);
-    outputGrayscale.allocate(width, height);
+    // colorImage.allocate(width, height);
+
+    // backSubContourImage.allocate(width, height);
+    // outputGrayscale.allocate(width, height);
 
     cout << "width : " << width << " height: " << height << endl;
     
@@ -74,21 +79,23 @@ void CV::setup( int _width,int _height, int _framerate){
     //flastGrayImage.allocate(width,height);
 
 //    invbackSubImage.allocate(width,height);
-    cleanFrameDiff.allocate(width,height);
+    // cleanFrameDiff.allocate(width,height);
 
-    outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
+    // outputImage.allocate(width, height,OF_IMAGE_GRAYSCALE);
 
     outpix = new unsigned char[width*height*4];
-
+    
     for(int i = 0; i <width*height*4;  i++ ){
         outpix[i] = 0;
     }
+
     backgroundTimer = 0;
     present = true;
     presenceTimer = 0;
     absenceTimer = 0;
 
     present = false;
+    
     pixels = new unsigned char[width*height*4];
 
     recordFbo.allocate(width, height,GL_RGBA);
@@ -96,61 +103,74 @@ void CV::setup( int _width,int _height, int _framerate){
     ofClear(0);
     recordFbo.end();
 
-    pathFbo.allocate(width, height);
-
+    // pathFbo.allocate(width, height);
     learnBackground = true;
     startLearn = true;
 
     offsetX = 0;
     offsetY = 0;
+    
+    //History, threshold, detectShadows 
+    pBackSub = cv::createBackgroundSubtractorMOG2(500, 28, false);
+    // pBackSub = cv::createBackgroundSubtractorKNN();
 
-    srcPts[0].set(0, 0);
-    srcPts[1].set(width, 0);
-    srcPts[2].set(width, height);
-    srcPts[3].set(0, height);
+    // mog.initialize(cvSize(width, height), CV_8UC3); // (100, 16, false);
+        
+    //Works but isn't that much better than anything else 
 
-    dstPts[0].set(0, 0);
-    dstPts[1].set(width, 0);
-    dstPts[2].set(width, height);
-    dstPts[3].set(0, height);
-
-    cvWarpQuad.setup("Quad_");
-    cvWarpQuad.setup("Masker-Quad");
-    cvWarpQuad.setQuadPoints(srcPts);
-    cvWarpQuad.readFromFile("quad-settings.xml");
-//    cv::Ptr::  cv::BackgroundSubtractorMOG2()
-    //create Background Subtractor objects
-    //pMOG2 = new cv::BackgroundSubtractorMOG2(); //MOG2 approach
-    // gsoc = new cv::BackgroundSubtractorGSOC();
-    // mog = new cv::BackgroundSubtractorMOG2();
     // pBackSub = cv::createBackgroundSubtractorMOG2();
-    mog.initialize(cvSize(width, height), CV_8UC3); // (100, 16, false);
+    // pBackSub = cv::BackgroundSubtractorGSOC();
 
-    // //Dawid Variables to put into gui
-    threshold_min = 200;
-    pre_blur = 1;
-    erosion_size = 3;
-    dilation_size = 8;
+
+    // // //Dawid Variables to put into gui
+    //Original 
+    // threshold_min = 200;
+    // pre_blur = 1;
+    // erosion_size = 3;
+    // dilation_size = 8;
+    // // max_elem = 4;
+    // // max_kernel_size = 11;
+    // morph_size = 4; // 32
+    // morph_iterations = 1;
+    // post_blur = 1;
+    // post_erosion_size = 1;
+    // expand_size = 1;
+    // expand_sigma1 = 0;
+    // smooth_size = 1;
+    // smooth_sigma1 = 1;
+    // learningRate = -1;
+    
+    //New Ones
+    // threshold_min = 200;
+    // pre_blur = 1;
+    // erosion_size = 1;
+    // dilation_size = 2;
     // max_elem = 4;
     // max_kernel_size = 11;
+
     morph_size = 4; // 32
     morph_iterations = 1;
+
     post_blur = 1;
     post_erosion_size = 1;
     expand_size = 1;
-    expand_sigma1 = 0;
-    smooth_size = 1;
-    smooth_sigma1 = 1;
-    learningRate = -1;
+    expand_sigma1 = 1;
     
+    smooth_size = 3;
+    smooth_sigma1 = 2;
 
-    setupCVGui();
+    learningRate = -1;
+
+    // setupCVGui();
     bNewFrame = false;  
     getExposure = false;
 
     //gui->toggleVisible();
 
-     // setupCVGui();  
+    setupCVGui();  
+    outImage.allocate(width,height, OF_IMAGE_GRAYSCALE);
+
+    someoneInLight = false;
 
 }
 
@@ -305,6 +325,7 @@ void CV::doCameraSetup(){
     // updateCamExposure(true);
 
 }
+
 void CV::updateCamExposure(bool state){
 
     if(state == true){
@@ -328,16 +349,14 @@ void CV::updateCamExposure(bool state){
 }
 
 
-void CV::setupCVGui(){
+ void CV::setupCVGui(){
 
     // ofxGuiSetFont("AtlasGrotesk-Regular-Web.ttf",10,true,true);
     // ofxGuiSetTextPadding(4);
     // ofxGuiSetDefaultWidth(300);
     // ofxGuiSetDefaultHeight(18);
-
     // ngui.setup("panel");
     //ngui.add(pre_blur.set("threshold_min",200,0,255));
-
     
     ggui = new ofxUICanvas(500, 150,200,600);
     ggui->setColorBack(ofColor::black);
@@ -367,7 +386,7 @@ void CV::setupCVGui(){
    
     ofAddListener(ggui->newGUIEvent,this, &CV::guiEventCV);
     ggui->loadSettings("GUI/CVSettings.xml");
-    ggui->setVisible(false);
+    ggui->setVisible(true);
 
 }
 
@@ -393,188 +412,6 @@ void CV::releaseCamera()
     #endif
 }
 
-//--------------------------------------------------------------
-void CV::JsubtractionLoop(bool bLearnBackground,bool mirrorH,bool mirrorV,int imgThreshold, int moveThreshold, int blur, int gaussBlur, int medianBlur, int minBlobSize, int maxBlobSize,int maxBlobNum,bool fillHoles, bool useApproximation,float brightness,float contrast,bool erode,bool dilate)
-{
-    bNewFrame = false;
-
-#ifdef DEBUG
-    debugVideo.update();
-    bNewFrame = debugVideo.isFrameNew();
-#else
-    cout << "getting frame from cam " << endl;
-    error = cam.RetrieveBuffer( &rawImage );
-    if (error != PGRERROR_OK)
-        {
-            PrintError( error );
-        }
-    //vidGrabber.update();
-    bNewFrame = true; //vidGrabber.isFrameNew();
-#endif
-
-    if (bNewFrame){
-    
-    #ifdef DEBUG
-        colorImage.resize(debugVideo.getWidth(),debugVideo.getHeight());
-        colorImage.setFromPixels(debugVideo.getPixels(), debugVideo.getWidth(),debugVideo.getHeight());
-        colorImage.resize(width, height);
-        grayImage = colorImage;
-        virginGray = grayImage;
-    #else
-        grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
-        grayImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows());
-        grayImage.resize(width, height);
-        virginGray = grayImage;
-    #endif
-    //Warping
-    // We get back the warped coordinates - scaled to our camera size
-    ofPoint * warpedPts = cvWarpQuad.getScaledQuadPoints(width, height);
-    // Lets warp with those cool coordinates!!!!!
-    grayWarped.warpIntoMe(grayImage, warpedPts, dstPts);
-    // Lets calculate the openCV matrix for our coordWarping
-    coordWarp.calculateMatrix(warpedPts, dstPts);
-        
-    grayImage.blurMedian(medianBlur);
-    frameDiff = grayImage;
-    backSubImage = grayImage;
-        
-    //Check if there is movement
-    frameDiff.absDiff(lastFrame);
-        
-    //Save the diff to add into the background subtracted image
-    cleanFrameDiff = frameDiff;
-    //Threshold the image
-    frameDiff.threshold(moveThreshold);
-    //Find contours to detect movement
-    contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum, fillHoles, useApproximation);
-        
-    //Do the background subtraction
-    backSubImage.absDiff(grayBg);
-    
-    if(erode){
-        backSubImage.erode();
-        frameDiff.erode();
-    }
-    
-    if(dilate){
-        backSubImage.dilate();
-        frameDiff.dilate();
-    }
-
-    //backSubImage.brightnessContrast(brightness, contrast);
-    //Mask the image so that we get the original pixels
-    //Combine both frame diff and background sub to get the most
-    //We could also combine this with a contour finder to get the most
-        
-  
-    backSubContourImage = backSubImage;
-    backSubContourImage.threshold(imgThreshold);
-    imagingContourFinder.findContours(backSubContourImage,minBlobSize, maxBlobSize, maxBlobNum, fillHoles, useApproximation);
-
-    //Check if someone is in light, and if not, add background frames
-    //Also add background frames if we're at launch 
-    bool someoneInLight = isSomeoneInTheLight();
-    if(!someoneInLight && ofGetElapsedTimeMillis() - backgroundTimer > presence_timeout_millis || ofGetFrameNum() < 100 ){
-
-        present = false;
-        pastImages.push_back(lastFrame);
-        
-        //Maybe do an average of all 50 images? and then lighten / darken ?
-        if(pastImages.size() > 50){
-            pastImages.erase(pastImages.begin());
-        }
-
-        if(pastImages.size() > 0 ){
-            grayBg = pastImages[0];
-            grayBg.blurMedian(medianBlur);
-        }
-    }
-
-    //this is not an else-if because we want to always be resetting the timer when someone is prsent,
-    if( someoneInLight ){
-        backgroundTimer = ofGetElapsedTimeMillis();
-        //While Present
-        present = true;
-        //absenceTimer = ofGetElapsedTimeMillis() + 5000;
-    }
-    
-    //these values are all unthresholded so we should be able to mix and match them
-    unsigned char * origPix = virginGray.getPixels();
-    unsigned char * backgroundSubPix = backSubImage.getPixels();
-    //use the unthresholded frame diff
-    unsigned char * frameDiffPix = cleanFrameDiff.getPixels();
-    
-    for (int i = 0; i < width*height; i ++){
-        
-        if(backgroundSubPix[i] > imgThreshold){
-            outpix[i] = backgroundSubPix[i]*3;
-        }else if(frameDiffPix[i] > imgThreshold){
-            outpix[i] = frameDiffPix[i]*3;
-        }else{
-            outpix[i] = 0;
-        }
-    }
-    
-    outputGrayscale.setFromPixels(outpix, width, height);
-    
-    if(dilate){
-        outputGrayscale.dilate();
-    }
-    
-    outputGrayscale.brightnessContrast(brightness,contrast);
-    
-    outputGrayscale.invert();
-    
-
-    //change this to a ofxcvgrayscaleimage
-    //outputImage.setFromPixels(outpix, width, height, OF_IMAGE_GRAYSCALE);
-    
-    
-    //Draw to the FBO
-    //ofSetColor(255,255,255);
-    
-//     recordFbo.begin();
-//         ofPushStyle();
-//         ofSetColor(255);
-// //      ofFill();
-        
-//         ofRect(0, 0, width, height);
-//         outputGrayscale.draw(0, 0, width,height);
-        
-//         for (int i = 0; i < imagingContourFinder.nBlobs; i++)
-//         {
-//                 ofSetColor(0);
-//                 ofBeginShape();
-
-//             for (int k = 0 ; k < imagingContourFinder.blobs[i].nPts-2; k+=2){
-//                     ofVertex(imagingContourFinder.blobs[i].pts[k].x, imagingContourFinder.blobs[i].pts[k].y);
-//                 }
-//                 ofEndShape(true);
-//          }
-    
-//         // ofSetColor(255, 255, 255);
-//         //outputImage.draw(0, 0, width,height);
-        
-//         // glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-//         glReadPixels(0, 0, width, height, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixels);
-//         ofPopStyle();
-//     recordFbo.end();
-
-    //Basic way of calculating image brightness
-
-
-    // imgBrightness = 0;
-    // for(int i =0; i < width*height; i++){
-    //         imgBrightness += pixels[i]/255;
-    // }
-    // pix.setFromPixels(pixels, width, height, 1);
-    pix.setFromPixels(outputGrayscale.getPixels(), width, height, 1);
-
-    lastFrame = virginGray;
-    lastFrame.blurMedian(medianBlur);
-
-    }
-}
 //--------------------------------------------------------------
 //void CV::DsubtractionLoop(bool bLearnBackground, bool useProgressiveLearn, float progressionRate, bool mirrorH, bool mirrorV,int threshold,int blur, int minBlobSize, int maxBlobSize,int maxBlobNum, bool fillHoles, bool useApproximation,float brightness, float contrast,bool erode,bool dilate)
 void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
@@ -624,36 +461,155 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 
         #ifdef DEBUG
         colorImage.resize(debugVideo.getWidth(),debugVideo.getHeight());
-        colorImage.setFromPixels(debugVideo.getPixels(),debugVideo.getWidth(),debugVideo.getHeight());
+        colorImage.setFromPixels(debugVideo.getPixels());
         colorImage.resize(width, height);
-        grayImage = colorImage;
+        colorImage.setImageType(OF_IMAGE_GRAYSCALE);
+
+        // grayImage = colorImage;
     
     #else
 
-        grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
-        grayImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows());
-        grayImage.resize(width, height);
+        // colorImage.setImageType(OF_IMAGE_GRAYSCALE);
+        // grayImage.resize(rawImage.GetCols(), rawImage.GetRows());
+        colorImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows(), OF_IMAGE_GRAYSCALE);
+        // grayImage.resize(width, height);
+
+
         // cout << "image size cols : " << rawImage.GetCols() << " rows : " << rawImage.GetRows() << endl;
         // cout << "system set to "  << width << ", " << height << endl;
         //cv::cvtColor(grayImage, colorImage, cv::COLOR_GRAY2BGR);
         // colorImage.setFromGrayscalePlanarImages(grayImage, grayImage, grayImage);
     #endif
 
-        frameDiff = grayImage;
-        frameDiff.absDiff(lastFrame);
-        frameDiff.threshold(frame_diff_thresh);
+        // frameDiff = grayImage;
+        // frameDiff.absDiff(lastFrame);
+        // frameDiff.threshold(frame_diff_thresh);
 
-        //Frame diff Contour Finder - for decteing presence
-        //contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
-        contourFinder.findContours(frameDiff, 50, 50000, 1,false,true);
+        // //Frame diff Contour Finder - for decteing presence
+        // //contourFinder.findContours(frameDiff, minBlobSize, maxBlobSize, maxBlobNum,fillHoles,useApproximation);
+        // contourFinder.findContours(frameDiff, 50, 50000, 1,false,true);
 
-        //Save the last frame
-        lastFrame = grayImage;
+        // //Save the last frame
+        // lastFrame = grayImage;
 
-        //Calling only once to save calculations
-        bool someoneInLight = isSomeoneInTheLight();
+        // //Calling only once to save calculations
+        // bool someoneInLight = isSomeoneInTheLight();
 
-        //Is someone in the light is a function that checks the contourfinder, and is broken out so that it can be called from ofApp.cpp
+        // //Is someone in the light is a function that checks the contourfinder, and is broken out so that it can be called from ofApp.cpp
+        // if( !someoneInLight && ofGetElapsedTimeMillis() - backgroundTimer > presence_timeout_millis){
+
+        //             //start getting exposure - but only after we've had someone present
+        //             //this should maybe happen long after people have left
+        //             //but lets run this for a while now
+        //             if(getExposure == false && present){
+        //                 cout << "getting exposure " << endl;
+        //                 getExposure = true;
+        //                 exposureTimer = ofGetElapsedTimeMillis() + 1000;
+        //                 updateCamExposure(getExposure);
+        //             }
+        //            present = false;
+        // }
+        
+        // //this is not an else-if because we want to always be resetting the timer when someone is prsent,
+        // if( someoneInLight ){
+
+        //         backgroundTimer = ofGetElapsedTimeMillis();
+        //         //While Present
+        //         present = true;
+        //         //absenceTimer = ofGetElapsedTimeMillis() + 5000;
+        // }
+
+        cv::Mat origFrameMat = ofxCv::toCv(colorImage.getPixels()); 
+
+        // cv::Mat(grayImage.getCvImage());
+        cv::Mat frameMat = origFrameMat; 
+
+
+        //Presence detection based on motion 
+        // cv::absdiff(origFrameMat, lastFrame, frameDiff);
+        // lastFrame = origFrameMat;
+    
+        // pre blur - doesn't exist in lastest cv
+        // cv::medianBlur(frameMat, frameMat, 2*pre_blur+1);
+
+        pBackSub->apply(frameMat, fgMaskMOG2, learningRate);
+
+       	// mog( frameMat, fgMaskMOG2, learningRate );
+        // mog.getBackgroundImage(bgMat);
+        
+        fgMaskMOG2.copyTo(maskOut);
+
+        // cv::threshold(maskOut, maskOut, threshold_min, 255, cv::THRESH_BINARY); // value around 200 removes shadows
+
+        // cv::threshold(maskOut, maskOut, 0, 255, cv::THRESH_BINARY + cv::THRESH_OTSU); // denoise binary image
+
+        // Erode
+        // cv::Mat erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
+        //                                             cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
+        //                                             cv::Point( erosion_size, erosion_size ) );
+
+        // cv::erode(maskOut, maskOut, erosion_kernel);
+        // // Dilate
+        // cv::Mat dilation_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
+        //                                                    cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
+        //                                                    cv::Point( dilation_size, dilation_size ) );
+        // cv::dilate(maskOut, maskOut, dilation_kernel);
+
+        // // Morphology
+        //Turn this off to see if it makes the contour better
+        cv::Mat morph_element = getStructuringElement( cv::MORPH_ELLIPSE,
+                                                      cv::Size( 2*morph_size + 1, 2*morph_size+1 )); //,
+                                                       // cv::Point( morph_size, morph_size ));
+                                                        //);
+                                                        //was morph_size, morph_size but I don't think it does anything
+
+        cv::morphologyEx( maskOut, maskOut, cv::MORPH_CLOSE, morph_element, cv::Point(-1,-1), morph_iterations, cv::BORDER_CONSTANT );
+
+        // post Erode
+        
+        // cv::Mat post_erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
+        //                                                    cv::Size( 2*post_erosion_size + 1, 2*post_erosion_size+1 ),
+        //                                                    cv::Point( post_erosion_size, post_erosion_size ) );
+        // cv::erode(maskOut, maskOut, post_erosion_kernel);
+
+        // cv::medianBlur(maskOut, maskOut, 2*post_blur+1);
+
+
+        cv::Mat mask1 = cv::Mat(w, h, CV_8UC1);
+        mask1 = cv::Scalar::all(0);
+        maskOut.copyTo(mask1);
+
+
+        cv::Mat mask2 = cv::Mat(h, w, CV_8UC1);
+        mask2 = cv::Scalar::all(0);
+
+        // maskOut.copyTo(mask2);
+        // mask2 = cv::Scalar::all(0);
+
+
+        // This contour finder doesn't seem to add anything
+        cv::Mat bw;
+        maskOut.copyTo(bw);
+
+        //So if we were going to be really fast, we would just save arrays of contours, and then draw them when we need them
+        //Not save whole images 
+        //But that's maybe too much 
+
+        std::vector<std::vector<cv::Point> > contours;
+        cv::Mat cont_hierarchy;
+        
+        // cv::findContours(bw, contours, cont_hierarchy, cv::RETR_FLOODFILL, cv::CHAIN_APPROX_SIMPLE);
+        cv::findContours(bw, contours, cont_hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+        
+        std::vector<std::vector<cv::Point> > approx( contours.size() );
+         // std::vector<std::vector<cv::Point> > hull( contours.size() );
+
+        if(contours.size() > 0){
+            someoneInLight = true;
+        }else{
+            someoneInLight = false;
+        }
+
         if( !someoneInLight && ofGetElapsedTimeMillis() - backgroundTimer > presence_timeout_millis){
 
                     //start getting exposure - but only after we've had someone present
@@ -677,101 +633,45 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
                 //absenceTimer = ofGetElapsedTimeMillis() + 5000;
         }
 
-        cv::Mat origFrameMat = cv::Mat(grayImage.getCvImage());
-        cv::Mat frameMat = cv::Mat(grayImage.getCvImage());
-
-        // cv::Mat origFrameMat = cv::Mat(colorImage.getCvImage());
-        // cv::Mat frameMat = cv::Mat(colorImage.getCvImage());
-
-        cv::resize(origFrameMat, origFrameMat, cv::Size(w,h));
-        cv::resize(frameMat, frameMat, cv::Size(w,h));
-
-        // cv::Mat diffMat = cv::Mat(frameDiff.getCvImage());
-        // cv::resize(diffMat, diffMat, cv::Size(w,h));
-        // cv::addWeighted(frameMat, 0.5, diffMat, 0.5, 0.0, frameMat);
-
-        // pre blur
-        cv::medianBlur(frameMat, frameMat, pre_blur);
-
-
-       	mog( frameMat, fgMaskMOG2, learningRate );
-
-        mog.getBackgroundImage(bgMat);
-        
-        fgMaskMOG2.copyTo(maskOut);
-
-        cv::threshold(maskOut, maskOut, threshold_min, 255, cv::THRESH_BINARY); // value around 200 removes shadows
-
-        cv::threshold(maskOut, maskOut, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU); // denoise binary image
-
-        // Erode
-        cv::Mat erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
-                                                    cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
-                                                    cv::Point( erosion_size, erosion_size ) );
-
-        cv::erode(maskOut, maskOut, erosion_kernel);
-        // Dilate
-        cv::Mat dilation_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
-                                                           cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
-                                                           cv::Point( dilation_size, dilation_size ) );
-        cv::dilate(maskOut, maskOut, dilation_kernel);
-
-        // Morphology
-        cv::Mat morph_element = getStructuringElement( cv::MORPH_ELLIPSE,
-                                                      cv::Size( 2*morph_size + 1, 2*morph_size+1 ),
-                                                      cv::Point( morph_size, morph_size ) );
-
-        cv::morphologyEx( maskOut, maskOut, cv::MORPH_CLOSE, morph_element, cv::Point(-1,-1), morph_iterations, cv::BORDER_CONSTANT );
-
-        // post Erode
-        cv::Mat post_erosion_kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE,
-                                                           cv::Size( 2*post_erosion_size + 1, 2*post_erosion_size+1 ),
-                                                           cv::Point( post_erosion_size, post_erosion_size ) );
-
-
-        cv::erode(maskOut, maskOut, post_erosion_kernel);
-
-        cv::medianBlur(maskOut, maskOut, post_blur);
-
-
-        cv::Mat mask1 = cv::Mat(h, w, CV_8UC1);
-        mask1 = cv::Scalar::all(0);
-        maskOut.copyTo(mask1);
-
-
-        //cv::Mat mask2 = cv::Mat(h, w, CV_8UC1);
-        //mask2 = cv::Scalar::all(0);
-        //maskOut.copyTo(mask2);
-       // mask2 = cv::Scalar::all(0);
-
-
-        //This contour finder doesn't seem to add anything
-//         cv::Mat bw;
-//         maskOut.copyTo(bw);
-
-//         std::vector<std::vector<cv::Point> > contours;
-//         cv::Mat cont_hierarchy;
-//         cv::findContours(bw, contours, cont_hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-
-//         std::vector<std::vector<cv::Point> > approx( contours.size() );
-//         //  std::vector<std::vector<cv::Point> > hull( contours.size() );
 //         for (size_t idx = 0; idx < contours.size(); idx++) {
 // //            cv::vector<cv::Point> approx;
+
 //             cv::approxPolyDP( cv::Mat(contours[idx]),
 //                               approx[idx],
-//                               cv::arcLength(cv::Mat(contours[idx]), true)*0.02, true );
+//                               cv::arcLength(cv::Mat(contours[idx]), true)*0.002, true );
 
 //             // Skip small or non-convex objects
-//             int minContArea = 100;
-// //            if (std::fabs(cv::contourArea(contours[idx])) < minContArea || !cv::isContourConvex(contours[idx]))
-// //                continue;
-//             cv::drawContours(maskOut, approx, idx, cv::Scalar(255), -1);
+//             //This works pretty well, but just drops frames if somethign is too big
+//             //Mabye we should use save the contours and re-draw if they're not good
+//             //but needs to be tested real-world. Add these to the UI 
+
+//             int minContArea = 120;
+//             //single person from 3m seems to have a max of about 5000
+//             //But this needs to be tested with multiple people, and more precise headlights
+
+//             int maxContArea = 5000;
+//             //|| !cv::isContourConvex(contours[idx])
+//             auto area = cv::contourArea(contours[idx]);
+
+//             if( area > minContArea &&  area < maxContArea){
+//                 //destination image, contours, contour to draw, colour, linetype
+//                 cv::drawContours(mask2, approx, idx, cv::Scalar(255), -1);  
+//                 // cv::drawContours(mask2, contours, idx, cv::Scalar(255), -1);  
+
+//                 // cout << "drawing: " << cv::contourArea(contours[idx]) << endl;
+//               }else{
+//                 // cout << "not drawing: " << cv::contourArea(contours[idx]) << endl;
+//             }
 //     //        cv::convexHull(cv::Mat(approx[idx]), hull[idx]);
 // //            int minContArea = 100;
 // //            if (std::fabs(cv::contourArea(hull[idx])) < minContArea)
 // //                continue;
 //   //          cv::drawContours(mask2, hull, idx, cv::Scalar(255), -1);
-//         }
+//             }
+
+
+        cv::GaussianBlur(mask2, mask2, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
+        keyOut2 = mask2;
 
         // cv::GaussianBlur(maskOut, maskOut, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
 /*      cv::GaussianBlur(mask2, mask2, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
@@ -780,30 +680,31 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
 */
 	    
         //Generate a white image
-        cv::Mat whiteMat = cv::Mat(origFrameMat.size(),CV_32FC1);
-        whiteMat = cv::Scalar::all(1.0);
+        // cv::Mat whiteMat = cv::Mat(origFrameMat.size(),CV_32FC1);
+        // whiteMat = cv::Scalar::all(1.0);
 
         /*
         * Prepare keyOut
         */
-        cv::GaussianBlur(mask1, mask1, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
-        mask1.convertTo(mask1, CV_32FC1);
+        // cv::GaussianBlur(mask1, mask1, cv::Size(expand_size, expand_size), expand_sigma1); // expand edges
+        // mask1.convertTo(mask1, CV_32FC1);
 
-        cv::GaussianBlur(mask1, mask1, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
+        // cv::GaussianBlur(mask1, mask1, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
 
-        if (keyOut.rows < origFrameMat.rows || keyOut.cols < origFrameMat.cols) {
-            keyOut = cv::Mat(origFrameMat.size(),CV_32FC1);
-        }
+        // if (keyOut.rows < origFrameMat.rows || keyOut.cols < origFrameMat.cols) {
+        //     keyOut = cv::Mat(origFrameMat.size(),CV_32FC1);
+        // }
  
  	    //multiply the white image by the mask image
-        keyOut = whiteMat.mul(mask1);
+        // keyOut = whiteMat.mul(mask1);
 
     	//convert to 8 bit single-channel array
-        keyOut.convertTo(keyOut, CV_8UC1);
+
+        // keyOut.convertTo(keyOut, CV_8UC1);
 
         //subtract(src1, src2, destination)
 	    //subtract the key from a black white image
-	    cv::subtract(cv::Scalar::all(255),keyOut,keyOut);
+	    // cv::subtract(cv::Scalar::all(255),keyOut,keyOut);
 
 	    //we're skipping this for now i'm not sure why
         /*
@@ -823,31 +724,35 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV)
         
 	//Draw Mat to get pixels
 	//This seems a bit much
-/*        recordFbo.begin();
-           ofSetColor(255, 255, 255);
-           //drawMat(keyOut2, 0, 20,width/2,height/2);
-           drawMat( keyOut , 0,0 ,width,height);
-           glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-        recordFbo.end();
-*/
+        // recordFbo.begin();
+        //    ofSetColor(255, 255, 255);
+        //    //drawMat(keyOut2, 0, 20,width/2,height/2);
+        //    drawMat( keyOut , 0,0 ,width,height);
+        //    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        // recordFbo.end();
+
         //  pix.resize(808,608);
-    lastBrightness = imgBrightness;
-    imgBrightness = 0;
+ //    lastBrightness = imgBrightness;
+ //    imgBrightness = 0;
 
-	for(int x =0; x < keyOut.rows; x++){
-		for(int y = 0; y < keyOut.cols; y++){
-			imgBrightness += keyOut.ptr<uchar>(y)[x]/255;
-		}
-	}
+	// for(int x =0; x < keyOut.rows; x++){
+	// 	for(int y = 0; y < keyOut.cols; y++){
+	// 		imgBrightness += keyOut.ptr<uchar>(y)[x]/255;
+	// 	}
+	// }
 
-    if(abs(lastBrightness-imgBrightness) < maxBrightnessDiff){
-        pix.setFromPixels(keyOut.data, width, height, 1);
-    }
+ //    // if(abs(lastBrightness-imgBrightness) < maxBrightnessDiff){
 
-//     pix.setFromPixels(pixels, width, height, 4);
+        // ofPixels op = keyOut.data;
+        //Is someone in the light is a function that checks the contourfinder, and is broken out so that it can be called from ofApp.cpp
+        
+        
+        //Invert image 
+        maskOut = ~maskOut;
 
-   //  pix.resize(320, 240);
-        //bool ofPixels_::resize(int dstWidth, int dstHeight, ofInterpolationMethod interpMethod=OF_INTERPOLATE_NEAREST_NEIGHBOR)
+        ofxCv::toOf(maskOut, pix); 
+        outImage.setFromPixels(pix);
+
    }
 
 }
@@ -886,30 +791,34 @@ void CV::setTrackingBoundaries(int _offsetX, int _offsetY)
 //--------------------------------------------------------------
 bool CV::isSomeoneInTheLight()
 {
-    if (contourFinder.nBlobs > 0)
-    {
-        for (int i = 0; i < contourFinder.nBlobs; i++)
-        {
-            if (contourFinder.blobs[i].centroid.x >= offsetX && contourFinder.blobs[i].centroid.x <= width-(offsetX) && contourFinder.blobs[i].centroid.y >= offsetY && contourFinder.blobs[i].centroid.y <= height-(offsetY))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-    else
-    {
-        return false;
-    }
+    bool b = false;
+
+    // if (contourFinder.nBlobs > 0)
+    // {
+    //     for (int i = 0; i < contourFinder.nBlobs; i++)
+    //     {
+    //         if (contourFinder.blobs[i].centroid.x >= offsetX && contourFinder.blobs[i].centroid.x <= width-(offsetX) && contourFinder.blobs[i].centroid.y >= offsetY && contourFinder.blobs[i].centroid.y <= height-(offsetY))
+    //         {
+    //             b = true;
+    //         }
+    //         else
+    //         {
+    //             b = false;
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     b = false;
+    // }
+
+    return b;
 }
 //--------------------------------------------------------------
-int CV::getNumberOfBlobs()
-{
-    return contourFinder.nBlobs;
-}
+// int CV::getNumberOfBlobs()
+// {
+//     // return contourFinder.nBlobs;
+// }
 //--------------------------------------------------------------
 void CV::relearnBackground()
 {
@@ -953,20 +862,20 @@ void CV::drawCalibration()
     ofSetColor(255);
     ofPushMatrix();
     ofTranslate(ofGetWidth()-width*2, ofGetHeight()-height);
-    virginGray.draw(0, 0,width,height);
+    // virginGray.draw(0, 0,width,height);
     ofDrawBitmapStringHighlight("Warper",0+5,15);
     ofSetColor(255);
-    grayWarped.draw(width,0,width,height);
+    // grayWarped.draw(width,0,width,height);
     ofDrawBitmapStringHighlight("Warped Img",width+5,15);
 
-    if (canDoCalibration == true)
-    {
-        cvWarpQuad.draw(0, 0, width, height,0,255,0,2);
-    }
-    else
-    {
-        cvWarpQuad.draw(0, 0, width, height,255,0,0,2);
-    }
+    // if (canDoCalibration == true)
+    // {
+    //     cvWarpQuad.draw(0, 0, width, height,0,255,0,2);
+    // }
+    // else
+    // {
+    //     cvWarpQuad.draw(0, 0, width, height,255,0,0,2);
+    // }
 
     ofPopStyle();
     ofPopMatrix();
@@ -975,25 +884,25 @@ void CV::drawCalibration()
 //--------------------------------------------------------------
 void CV::drawAllPaths()
 {
-    for (int i = 0; i < blobPath.size(); i++)
-    {
-        ofNoFill();
-        ofBeginShape();
-        ofSetColor(255, 255, 0);
-        for (int p = 0; p < blobPath.size(); p++)
-        {
-            ofVertex(blobPath[p].x,blobPath[p].y);
-        }
-        ofEndShape(false);
-    }
+    // for (int i = 0; i < blobPath.size(); i++)
+    // {
+    //     ofNoFill();
+    //     ofBeginShape();
+    //     ofSetColor(255, 255, 0);
+    //     for (int p = 0; p < blobPath.size(); p++)
+    //     {
+    //         ofVertex(blobPath[p].x,blobPath[p].y);
+    //     }
+    //     ofEndShape(false);
+    // }
 }
 //--------------------------------------------------------------
 void CV::getAllPaths()
 {
-    for (int i = 0; i < contourFinder.nBlobs; i++)
-    {
-        blobPaths[0].bPath.push_back(contourFinder.blobs[0].centroid);
-    }
+    // for (int i = 0; i < contourFinder.nBlobs; i++)
+    // {
+    //     blobPaths[0].bPath.push_back(contourFinder.blobs[0].centroid);
+    // }
 }
 //--------------------------------------------------------------
 void CV::drawTracking()
@@ -1005,47 +914,48 @@ void CV::drawTracking()
     ofFill();
     //ofRect(0, 0, width, height);
     //ofSetColor(255, 255, 255);
-    contourFinder.draw(0,0,width,height);
+    // contourFinder.draw(0,0,width,height);
 
-    ofNoFill();
-    if (isSomeoneInTheLight()) {
-        ofSetColor(0, 255, 0);
-    }
-    else
-    {
-        ofSetColor(255,25,0);
-    }
-    ofRect(offsetX,offsetY,width-(offsetX*2),height-(offsetY*2));
+    // ofNoFill();
+    // if (isSomeoneInTheLight()) {
+    //     ofSetColor(0, 255, 0);
+    // }
+    // else
+    // {
+    //     ofSetColor(255,25,0);
+    // }
+    // ofRect(offsetX,offsetY,width-(offsetX*2),height-(offsetY*2));
 
-    ofSetColor(255, 255, 255);
+    // ofSetColor(255, 255, 255);
 
-    for (int i = 0; i < contourFinder.nBlobs; i++)
-    {
-        ofDrawBitmapStringHighlight(ofToString(i), contourFinder.blobs[i].boundingRect.x+5,contourFinder.blobs[i].boundingRect.y+10);
-        ofSetColor(255, 0, 0);
-        ofCircle(contourFinder.blobs[i].centroid, 3);
-    }
+    // for (int i = 0; i < contourFinder.nBlobs; i++)
+    // {
+    //     ofDrawBitmapStringHighlight(ofToString(i), contourFinder.blobs[i].boundingRect.x+5,contourFinder.blobs[i].boundingRect.y+10);
+    //     ofSetColor(255, 0, 0);
+    //     ofCircle(contourFinder.blobs[i].centroid, 3);
+    // }
 
-    if (!blobPaths.empty())
-    {
-        ofNoFill();
+    // if (!blobPaths.empty())
+    // {
+    //     ofNoFill();
 
-        for (int o = 0; o < blobPaths.size(); o++)
-        {
-            ofBeginShape();
-            for (int i = 0; i < blobPaths[o].bPath.size(); i++)
-            {
-                ofVertex(blobPaths[o].bPath[i].x,blobPaths[o].bPath[i].y);
-            }
-            ofEndShape(false);
-        }
-    }
+    //     for (int o = 0; o < blobPaths.size(); o++)
+    //     {
+    //         ofBeginShape();
+    //         for (int i = 0; i < blobPaths[o].bPath.size(); i++)
+    //         {
+    //             ofVertex(blobPaths[o].bPath[i].x,blobPaths[o].bPath[i].y);
+    //         }
+    //         ofEndShape(false);
+    //     }
+    // }
     ofPopStyle();
     ofPopMatrix();
 
     float brightnessDiff = imgBrightness - lastBrightness;
     ofDrawBitmapStringHighlight("Image Brightness : " + ofToString(imgBrightness) + " Brightness diff : " + ofToString(brightnessDiff), 0, 170);
-    
+    ofDrawBitmapStringHighlight("Framerate  : " + ofToString(ofGetFrameRate()), 0, 190);
+       
 }
 //--------------------------------------------------------------
 void CV::drawLive()
@@ -1086,87 +996,100 @@ void CV::draw()
     
     ofPushMatrix();
     ofTranslate(x, y);
-    ofDrawBitmapStringHighlight("outputGrayscale",5,15);
-    outputGrayscale.draw(0,20,width/2,height/2);
+    ofDrawBitmapStringHighlight("colorImage",5,15);
+    colorImage.draw(0,20,width/2,height/2);
     ofPopMatrix();
     x += width/2;
     
     
     ofPushMatrix();
     ofTranslate(x, y);
-    ofDrawBitmapStringHighlight("grayImage",5,15);
-    grayImage.draw(0,20,width/2,height/2);
+    ofDrawBitmapStringHighlight("outImage",5,15);
+    outImage.draw(0,20,width/2,height/2);
     ofPopMatrix();
     x += width/2;
     
+//     ofPushMatrix();
+//     ofTranslate(x, y);
+//     ofDrawBitmapStringHighlight("grayBg",5,15);
+//     grayBg.draw(0,20,width/2,height/2);
+//     ofPopMatrix();
+//     x += width/2;
+    
     ofPushMatrix();
-    ofTranslate(x, y);
-    ofDrawBitmapStringHighlight("grayBg",5,15);
-    grayBg.draw(0,20,width/2,height/2);
+    // ofTranslate(x, y);
+    ofDrawBitmapStringHighlight("contour Finder mask",5,15);
+    ofPixels contourFinderPix; 
+    ofImage contourFinderImg;
+    ofxCv::toOf(keyOut2, contourFinderPix);
+    contourFinderImg.setFromPixels(contourFinderPix);
+    contourFinderImg.draw(0,20,width/2,height/2);
+    // contourFinderImg.draw(0,0,ofGetWidth(),ofGetHeight());
+
     ofPopMatrix();
     x += width/2;
     
-    ofPushMatrix();
-    ofTranslate(x, y);
-    ofDrawBitmapStringHighlight("frameDiff",5,15);
-    frameDiff.draw(0,20,width/2,height/2);
-    ofPopMatrix();
-    x += width/2;
     
     ofPushMatrix();
     ofTranslate(x, y);
     ofDrawBitmapStringHighlight("backSubImage",5,15);
-    backSubImage.draw(0,20,width/2,height/2);
+    ofPixels p; 
+    ofImage i;
+    ofxCv::toOf(fgMaskMOG2, p);
+    i.setFromPixels(p);
+    i.draw(0,20,width/2,height/2);
+
     ofPopMatrix();
     x += width/2;
     
     
     
-    ofPushMatrix();
-    ofTranslate(x, y);
-    ofDrawBitmapStringHighlight("fgMask",5,15);
-    drawMat(fgMaskMOG2, 0, 20,width/2,height/2);
-    ofPopMatrix();
-//    x += width/2;
+//     ofPushMatrix();
+//     ofTranslate(x, y);
+//     ofDrawBitmapStringHighlight("fgMask",5,15);
+//     // drawMat(fgMaskMOG2, 0, 20,width/2,height/2);
+//     ofPopMatrix();
+// //    x += width/2;
     
     
-    ofPushMatrix();
-    ofTranslate(x, y + height/2 + 20);
-    ofDrawBitmapStringHighlight("bgMat",5,15);
-    drawMat(bgMat, 0, 20,width/2,height/2);
-    ofPopMatrix();
-    x += width/2;
+//     ofPushMatrix();
+//     ofTranslate(x, y + height/2 + 20);
+//     ofDrawBitmapStringHighlight("bgMat",5,15);
+//     // drawMat(bgMat, 0, 20,width/2,height/2);
+//     ofPopMatrix();
+//     x += width/2;
     
-    ofPushMatrix();
-    ofTranslate(x, y);
-    ofDrawBitmapStringHighlight("maskOut",5,15);
-    drawMat(maskOut, 0, 20,width/2,height/2);
-    ofPopMatrix();
+    // ofPushMatrix();
+    // ofTranslate(x, y);
+    // ofDrawBitmapStringHighlight("maskOut",5,15);
+    // // drawMat(maskOut, 0, 20,width/2,height/2);
+    // ofPopMatrix();
 
     
-    ofPushMatrix();
-    ofTranslate(x, y + height/2 + 20);
-    ofDrawBitmapStringHighlight("keyOut",5,15);
-    drawMat(keyOut, 0, 20,width,height);
-    ofPopMatrix();
+//     ofPushMatrix();
+//     ofTranslate(x, y + height/2 + 20);
+//     ofDrawBitmapStringHighlight("keyOut",5,15);
+//     // drawMat(keyOut, 0, 20,width,height);
+//     ofPopMatrix();
     
-    ofPushMatrix();
-    ofTranslate(x, y + (height+ 20)*2);
-    ofDrawBitmapStringHighlight("keyOut2",5,15);
-    drawMat(keyOut2, 0, 20,width,height);
-    ofPopMatrix();
+//     ofPushMatrix();
+//     ofTranslate(x, y + (height+ 20)*2);
+//     ofDrawBitmapStringHighlight("keyOut2",5,15);
+//     // drawMat(keyOut2, 0, 20,width,height);
+//     ofPopMatrix();
     
   
    
-    virginGray.draw(ofGetWidth() - 2*width,0,width,height);
-    ofDrawBitmapStringHighlight("Virgin Gray",ofGetWidth() - 2*width, 15);
-    //Draws on top of Virgin Gray
-    drawTracking();
+//     virginGray.draw(ofGetWidth() - 2*width,0,width,height);
+//     ofDrawBitmapStringHighlight("Virgin Gray",ofGetWidth() - 2*width, 15);
+//     //Draws on top of Virgin Gray
+//     drawTracking();
     
     
     recordFbo.draw(ofGetWidth()- 2*width,height,width,height);
     ofDrawBitmapStringHighlight("Record Fbo",ofGetWidth() - 2*width, height+15);
 
+    drawTracking();
    
     
     //ofPopMatrix();
@@ -1176,7 +1099,7 @@ void CV::draw()
 
 void CV::drawCameraFullScreen(){
 	
-	 grayImage.draw(0,0, ofGetWidth(),ofGetHeight());
+	 // grayImage.draw(0,0, ofGetWidth(),ofGetHeight());
 
 }
 //--------------------------------------------------------------
@@ -1185,38 +1108,38 @@ ofPixels CV::getRecordPixels()
     return pix;
 }
 //--------------------------------------------------------------
-ofVec2f CV::getBlobPath()
-{
-    if (contourFinder.nBlobs > 0)
-    {
-        for (int i = 0; i < contourFinder.nBlobs; i++)
-        {
-            //If the Blob has an Area larger than 100 pixels find it and return its centroid
-            if (contourFinder.blobs[i].area >= 100)
-            {
-                blobPath.push_back(contourFinder.blobs[0].centroid);
-                return contourFinder.blobs[0].centroid;
-            }
-        }
-    }
-    else
-    {
-        //return ofVec2f(320/2,240/2);
-    }
-}
-//--------------------------------------------------------------
-void CV::mouseDragged(int x, int y, int button){
-    cvWarpQuad.updatePoint(x, y, 0,0,width,height);
-}
-//--------------------------------------------------------------
-void CV::mousePressed(int x, int y, int button){
-    cvWarpQuad.selectPoint(x, y,0,0,width,height,30);
+// ofVec2f CV::getBlobPath()
+// {
+//     if (contourFinder.nBlobs > 0)
+//     {
+//         for (int i = 0; i < contourFinder.nBlobs; i++)
+//         {
+//             //If the Blob has an Area larger than 100 pixels find it and return its centroid
+//             if (contourFinder.blobs[i].area >= 100)
+//             {
+//                 blobPath.push_back(contourFinder.blobs[0].centroid);
+//                 return contourFinder.blobs[0].centroid;
+//             }
+//         }
+//     }
+//     else
+//     {
+//         //return ofVec2f(320/2,240/2);
+//     }
+// }
+// //--------------------------------------------------------------
+// void CV::mouseDragged(int x, int y, int button){
+//     cvWarpQuad.updatePoint(x, y, 0,0,width,height);
+// }
+// //--------------------------------------------------------------
+// void CV::mousePressed(int x, int y, int button){
+//     cvWarpQuad.selectPoint(x, y,0,0,width,height,30);
 
-}
-//--------------------------------------------------------------
-void CV::mouseReleased(int x, int y, int button){
-    cvWarpQuad.saveToFile("quad-settings.xml");
-}
+// }
+// //--------------------------------------------------------------
+// void CV::mouseReleased(int x, int y, int button){
+//     cvWarpQuad.saveToFile("quad-settings.xml");
+// }
 /*
 cvWarpQuad.updatePoint(x, y, 10+200,ofGetHeight()/2-camH, 640,480);
 cvWarpQuad.selectPoint(x, y, 10+200,ofGetHeight()/2-camH,640,480,30);
@@ -1262,9 +1185,8 @@ void CV::PrintCameraInfo( CameraInfo* pCamInfo )
 
 void CV::exit()
 {
-    //gui.saveToFile("camera_settings.xml");
     ggui->saveSettings("GUI/CVSettings.xml");
-    //delete gui;
+    delete ggui;
 }
 
 
@@ -1381,3 +1303,4 @@ void CV::guiEventCV(ofxUIEventArgs &e)
     }
 
 }
+ 
