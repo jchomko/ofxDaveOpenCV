@@ -6,12 +6,9 @@
 //--------------------------------------------------------------
 
 #include "OCV.h"
-// using namespace ofxCv;
-// using namespace cv;
 
 //--------------------------------------------------------------
 void CV::setup( int _width,int _height, int _framerate){
-
    
     width = _width;
     height = _height;
@@ -22,7 +19,6 @@ void CV::setup( int _width,int _height, int _framerate){
     cout << "Major version : " << CV_MAJOR_VERSION << endl;
     cout << "Minor version : " << CV_MINOR_VERSION << endl;
     cout << "Subminor version : " << CV_SUBMINOR_VERSION << endl;
-     
 
 #ifdef DEBUG
 
@@ -48,15 +44,12 @@ void CV::setup( int _width,int _height, int _framerate){
     
     morph_size = 4; // 32
     morph_iterations = 1;
-
     post_blur = 1;
     post_erosion_size = 1;
     expand_size = 1;
     expand_sigma1 = 1;
-    
     smooth_size = 3;
     smooth_sigma1 = 2;
-
     learningRate = -1;
 
     // setupCVGui();
@@ -372,10 +365,10 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
             cv::threshold(frameDiff, frameDiff, frame_diff_thresh, 255, cv::THRESH_BINARY);
 
             //Set ROI -
-            // cv::Rect myROI(offsetX, offsetY, width-(offsetX*2), width-(offsetY*2));
+            cv::Rect myROI(offsetX, offsetY, width-(offsetX*2), width-(offsetY*2));
             
-            //Crop 
-            // cv::Mat croppedFrameDiff = frameDiff(myROI);
+            // Crop 
+            cv::Mat croppedFrameDiff = frameDiff(myROI);
 
             //Find Contours
             std::vector<std::vector<cv::Point> > frameDiffContours;
@@ -417,12 +410,10 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
                 presenceTimer = ofGetElapsedTimeMillis();
                 //While Present
                 present = true;
-                //absenceTimer = ofGetElapsedTimeMillis() + 5000;
         }
 
 
         //Background Subtraction
-        // pre blur 
         cv::medianBlur(frameMat, frameMat, 2*pre_blur+1);
 
         pBackSub->apply(frameMat, fgMaskMOG2, learningRate);
@@ -480,9 +471,10 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
 
         for (size_t idx = 0; idx < contours.size(); idx++) {
 
+            //This affects the neatness of the lines -if we multiply by 0.002 it's pretty normal looking, but 0.004 is pretty blocky / techy
             cv::approxPolyDP( cv::Mat(contours[idx]),
                               approx[idx],
-                              cv::arcLength(cv::Mat(contours[idx]), true)*0.004, true );
+                              cv::arcLength(cv::Mat(contours[idx]), true)*0.002, true );
 
             // Skip small or non-convex objects
             //This works pretty well, but just drops frames if somethign is too big
@@ -499,24 +491,16 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
                 // cv::drawContours(mask2, approx, idx, cv::Scalar(255), -1);  
                 // cv::drawContours(mask2, approx, idx, cv::Scalar(255), -1);  
                 cv::drawContours(mask2, approx, idx, cv::Scalar(255), cv::FILLED, 0, hierarchy);  
-
                 // cv::drawContours(mask2, contours, idx, cv::Scalar(255), -1);  
-              }else{
+                }else{
                 // cout << "rejected contour : " << area << endl;
                 // cv::drawContours(rejected_contours, approx, idx, cv::Scalar(255), -1);
             }
-    //        cv::convexHull(cv::Mat(approx[idx]), hull[idx]);
-//            int minContArea = 100;
-//            if (std::fabs(cv::contourArea(hull[idx])) < minContArea)
-//                continue;
-  //          cv::drawContours(mask2, hull, idx, cv::Scalar(255), -1);
-            }
-
+        }
 
         cv::GaussianBlur(mask2, mask2, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
         keyOut2 = mask2;
 
-   
 
         lastBrightness = imgBrightness;
         imgBrightness = 0;
@@ -527,11 +511,12 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
     		}
     	}
 
-        // if(abs(lastBrightness-imgBrightness) < maxBrightnessDiff){
 
+        // if(abs(lastBrightness-imgBrightness) < maxBrightnessDiff){
         // }
 
         //Invert images 
+
         //This one is the 'pure cv' version
         maskOut = ~maskOut;
 
@@ -574,9 +559,7 @@ void CV::setTrackingBoundaries(int _offsetX, int _offsetY){
 //------------------------------------------------------------
 void CV::toggleGui()
 {
-//  showGui = !showGui;
     ggui->toggleVisible();
-
 }
 
 //--------------------------------------------------------------
@@ -725,6 +708,7 @@ void CV::exit(){
 }
 
 
+//To clean up 
 void CV::guiEventCV(ofxUIEventArgs &e){
 
     string name = e.getName();
@@ -838,11 +822,14 @@ void CV::guiEventCV(ofxUIEventArgs &e){
     
         ofxUINumberDialer * num = (ofxUINumberDialer *) e.widget;
         minContArea = num->getValue();
-    
+        cout << "min cont area: " << minContArea << endl;
+
     }else if( e.getName() == "_maxContArea"){
     
         ofxUINumberDialer * num = (ofxUINumberDialer *) e.widget;
-        minContArea = num->getValue();
+        maxContArea = num->getValue();
+        cout << "max cont area: " << minContArea << endl;
+
     
     }
 
