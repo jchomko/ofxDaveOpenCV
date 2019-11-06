@@ -64,6 +64,11 @@ void CV::setup( int _width,int _height, int _framerate){
     outImage.allocate(width,height, OF_IMAGE_GRAYSCALE);
     pix.allocate(width,height,OF_IMAGE_GRAYSCALE);
 
+
+    //Get Exposure at startup
+    getExposure = true;
+    exposureTimer = ofGetElapsedTimeMillis();
+
 }
 
 void CV::resetDebugVideo(){
@@ -307,9 +312,17 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
 
     //Exposure timer 
     if(getExposure && ofGetElapsedTimeMillis() > exposureTimer){
+        updateCamExposure(true);
         getExposure = false;
-        // cout << "stopping exposure " << endl;
-        updateCamExposure(getExposure);
+        cout << "getting exposure " << endl;
+        stopGettingExposureTimer = ofGetElapsedTimeMillis()+5000;
+        stopExposure = true;
+    }
+
+    if(stopExposure && ofGetElapsedTimeMillis() > stopGettingExposureTimer){
+        cout << "stopping exposure " << endl;
+        updateCamExposure(false);
+        stopExposure = false;
     }
 
     #ifdef DEBUG
@@ -337,7 +350,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
     #endif
     
     
-    if (bNewFrame && !getExposure){
+    if (bNewFrame){ //&& !getExposure
 
         #ifdef DEBUG
 
@@ -387,19 +400,19 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
 
         origFrameMat.copyTo(lastFrame);
         
-        if( !someoneInLight && ofGetElapsedTimeMillis() - presenceTimer > presence_timeout_millis){
+        if( !someoneInLight && ofGetElapsedTimeMillis() - presenceTimer > presence_timeout_millis ){
 
             //start getting exposure - but only after we've had someone present
             //this should maybe happen long after people have left
             //but lets run this for a while now
-            if(getExposure == false && present){
+            if(getExposure == false && present && stopExposure == false){
                 
                 // cout << "getting exposure " << endl;
                 getExposure = true;
 
                 //Put this delay on a slider
                 exposureTimer = ofGetElapsedTimeMillis() + 15000;
-                updateCamExposure(getExposure);
+                // updateCamExposure(getExposure);
             }
             present = false;
         }
@@ -411,6 +424,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
                 //While Present
                 present = true;
         }
+
 
 
         //Background Subtraction

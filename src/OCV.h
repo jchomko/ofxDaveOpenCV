@@ -127,6 +127,8 @@ private:
 
     //These need cleaning up
     long exposureTimer;
+    long stopGettingExposureTimer;
+    bool stopExposure;
     bool getExposure;
     
     int threshold_min;
