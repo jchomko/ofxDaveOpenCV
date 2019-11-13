@@ -36,48 +36,36 @@ class CV : public ofBaseApp {
 public:
        
     void setup(int width, int height, int framerate);
-
-
+    void setTrackingBoundaries(int offsetX, int offsetY);
     void DsubtractionLoop(bool mirrorH, bool mirrorV);
     
-    void draw();
-    void drawLive();
-    void drawAllPaths();
-    void drawLiveShadow();
-    void drawCalibration();
-    void drawTracking();
-    void getAllPaths();
-    void toggleGui();
+    bool isSomeoneThere();
+    bool isFrameNew();
     
-    void exit();
-    void releaseCamera();
+    ofPixels getRecordPixels();
+    ofImage getRecordImage();
 
+    void draw();
+    void drawCameraFullScreen();
+    void updateCamExposure(bool state); 
+    void toggleGui();
+    void releaseCamera();
+    void exit();
+    
     //Pt Grey Utils
+    void doCameraSetup();
     void PrintError(Error error);
     void PrintCameraInfo( CameraInfo* pCamInfo );
     Error error;
     Camera cam;
     Image rawImage;
     Image convertedImage;
-    void doCameraSetup();
-
-
-    // Getters
-    ofPixels getRecordPixels();
-    ofImage getRecordImage();
     
-    bool isSomeoneThere();
-    void resetDebugVideo();
-
-    bool isFrameNew();
     bool bNewFrame;
     
-    // Setters
-    void setTrackingBoundaries(int offsetX, int offsetY);
+    //Debug stuff
     ofVideoGrabber vidGrabber;
-
-    void drawCameraFullScreen();
-    void updateCamExposure(bool state); 
+    void resetDebugVideo();
     
     
 private:
@@ -97,7 +85,6 @@ private:
     int offsetY;
     ofFbo recordFbo;
     ofPixels pix;
-    //vector<ofVec3f>centroids;
 
 #ifdef DEBUG
     ofVideoPlayer           debugVideo;
@@ -112,9 +99,6 @@ private:
     cv::Mat maskOut;
     cv::Mat keyOut;
     cv::Mat keyOut2;
-    // cv::Mat keyOut3;
-    // cv::Mat keyOut4;
-
     
     cv::Ptr<cv::BackgroundSubtractor> pBackSub;
    
@@ -125,34 +109,28 @@ private:
     long presenceTimer;
     unsigned char * pixels;
 
-    //These need cleaning up
     long exposureTimer;
+    bool getExposure;  
     long stopGettingExposureTimer;
     bool stopExposure;
-    bool getExposure;
-    
-    int threshold_min;
+    bool someoneInLight;
+
+    //Cv Settings
     int pre_blur;
-    int erosion_size;
-    int dilation_size;
-    int max_elem;
-    int max_kernel_size;
-    int morph_size; // 32
+    int morph_size; 
     int morph_iterations;
-    int post_blur;
-    
-    int post_erosion_size;
-    int expand_size;
-    double expand_sigma1;
     int smooth_size;
     double smooth_sigma1;
     double learningRate;
     int frame_diff_thresh;
     int presence_timeout_millis;
     int maxBrightnessDiff;
-
-    bool someoneInLight;
     int minContArea;
     int maxContArea;
+
+    int erosion_size;
+    int dilation_size;
+
+
 
 };

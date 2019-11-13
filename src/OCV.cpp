@@ -13,7 +13,7 @@ void CV::setup( int _width,int _height, int _framerate){
     width = _width;
     height = _height;
     framerate = _framerate;
-    
+
     cout << "width : " << width << " height: " << height << endl;
     cout << "OpenCV version : " << CV_VERSION << endl;
     cout << "Major version : " << CV_MAJOR_VERSION << endl;
@@ -44,26 +44,27 @@ void CV::setup( int _width,int _height, int _framerate){
     
     morph_size = 4; // 32
     morph_iterations = 1;
-    post_blur = 1;
-    post_erosion_size = 1;
-    expand_size = 1;
-    expand_sigma1 = 1;
     smooth_size = 3;
     smooth_sigma1 = 2;
     learningRate = -1;
 
+    //Keeping these in case we need them on site
+    // erosion_size = 1;
+    // dilation_size = 1;
+
     // setupCVGui();
+    
     bNewFrame = false;  
     getExposure = false;
-
     minContArea = 120;
     maxContArea = 5000;
     someoneInLight = false;
 
     setupCVGui();  
+
+    //Allocate images
     outImage.allocate(width,height, OF_IMAGE_GRAYSCALE);
     pix.allocate(width,height,OF_IMAGE_GRAYSCALE);
-
 
     //Get Exposure at startup
     getExposure = true;
@@ -247,39 +248,33 @@ void CV::updateCamExposure(bool state){
 
     ggui = new ofxUICanvas(500, 150,200,600);
     ggui->setColorBack(ofColor::black);
+    
     ggui->addWidgetDown(new ofxUINumberDialer(-1.00f, 1.00f, 0.01f, 1, "learningRate", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 255, 5, 1, "frameDiffThresh", OFX_UI_FONT_MEDIUM));
     
-    // ggui->addWidgetDown(new ofxUINumberDialer(0, 255, 1, 0, "threshold_min1", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "pre_blur", OFX_UI_FONT_MEDIUM));
+    
     // ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 3, 0, "erosion_size", OFX_UI_FONT_MEDIUM));
     // ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 8, 0, "dilation_size", OFX_UI_FONT_MEDIUM));
-    // ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 4, 0, "max_elem", OFX_UI_FONT_MEDIUM));
-    // ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "max_kernel_size", OFX_UI_FONT_MEDIUM));
+    
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 4, 0, "morph_size", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "morph_iterations", OFX_UI_FONT_MEDIUM));
 
     ggui->addWidgetDown(new ofxUINumberDialer(0, 1000, 1, 0, "_minContArea", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 76000, 1, 0, "_maxContArea", OFX_UI_FONT_MEDIUM));
     
-
-    // ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 1, "post_blur", OFX_UI_FONT_MEDIUM));
-    // ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "post_erosion_size", OFX_UI_FONT_MEDIUM));
-    // ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 2, "expand_size", OFX_UI_FONT_MEDIUM));
-    // ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "expand_sigma1", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "smooth_size", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 10, 1, 0, "smooth_sigma1", OFX_UI_FONT_MEDIUM));
     
     ggui->addWidgetDown(new ofxUINumberDialer(0, 8000, 1200, 1, "presenceTimeoutMillis", OFX_UI_FONT_MEDIUM));
     ggui->addWidgetDown(new ofxUINumberDialer(0, 8000, 1200, 1, "maxBrightnessDiff", OFX_UI_FONT_MEDIUM));
 
-    // ggui->addButton("updateExposure", false);
-    // ggui->addToggle("T1", false, 44, 44);
+    
     ggui->autoSizeToFitWidgets();
     
     ofAddListener(ggui->newGUIEvent,this, &CV::guiEventCV);
     ggui->loadSettings("GUI/CVSettings.xml");
-    ggui->setVisible(true);
+    ggui->setVisible(false);
 
 }
 
@@ -334,6 +329,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
     
         //Check if camera is connected
         if(cam.IsConnected()){
+            
             error = cam.RetrieveBuffer( &rawImage );
             
             if (error != PGRERROR_OK){
@@ -360,13 +356,18 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
             colorImage.setImageType(OF_IMAGE_GRAYSCALE);
 
         #else
-
+            
+            // colorImage.resize(rawImage.GetCols(), rawImage.GetRows());
             colorImage.setFromPixels(rawImage.GetData(), rawImage.GetCols(), rawImage.GetRows(), OF_IMAGE_GRAYSCALE);
+            // colorImage.resize(width, height);
 
         #endif
 
         cv::Mat origFrameMat = ofxCv::toCv(colorImage.getPixels()); 
+       
         cv::Mat frameMat = origFrameMat; 
+
+        // cv::resize(origFrameMat, frameMat, cv::Size(width,height));
 
 
         //Frame Diff presence detection
@@ -399,6 +400,7 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
 
 
         origFrameMat.copyTo(lastFrame);
+
         
         if( !someoneInLight && ofGetElapsedTimeMillis() - presenceTimer > presence_timeout_millis ){
 
@@ -462,12 +464,12 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
         //                                                    cv::Size( 2*post_erosion_size + 1, 2*post_erosion_size+1 ),
         //                                                    cv::Point( post_erosion_size, post_erosion_size ) );
         // cv::erode(maskOut, maskOut, post_erosion_kernel);
-        
         // cv::medianBlur(maskOut, maskOut, 2*post_blur+1);
 
-        cv::Mat mask2 = cv::Mat(width, height, CV_8UC1);
+        //This is correct I'm not sure if all Mats need to be allocted like this or if it's only for the contourfinder
+        cv::Mat mask2 = cv::Mat(height*2, width*2, CV_8UC1);
         mask2 = cv::Scalar::all(0);
-        
+
         cv::Mat bw;
         maskOut.copyTo(bw);
         cv::GaussianBlur(maskOut, maskOut, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
@@ -489,6 +491,10 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
             cv::approxPolyDP( cv::Mat(contours[idx]),
                               approx[idx],
                               cv::arcLength(cv::Mat(contours[idx]), true)*0.002, true );
+
+            // cv::approxPolyDP( cv::Mat(contours[idx]),
+            //                 approx[idx],
+            //                 0.3, true );
 
             // Skip small or non-convex objects
             //This works pretty well, but just drops frames if somethign is too big
@@ -513,18 +519,6 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
         }
 
         cv::GaussianBlur(mask2, mask2, cv::Size(smooth_size, smooth_size), smooth_sigma1); // smooth edges
-        keyOut2 = mask2;
-
-
-        lastBrightness = imgBrightness;
-        imgBrightness = 0;
-
-    	for(int x =0; x < maskOut.rows; x++){
-    		for(int y = 0; y < maskOut.cols; y++){
-    			imgBrightness += maskOut.ptr<uchar>(y)[x]/255;
-    		}
-    	}
-
 
         // if(abs(lastBrightness-imgBrightness) < maxBrightnessDiff){
         // }
@@ -536,6 +530,9 @@ void CV::DsubtractionLoop(bool mirrorH, bool mirrorV){
 
         //This one is the contour finder version
         mask2 = ~mask2;
+        keyOut2 = mask2;
+
+        cv::resize(mask2, mask2, cv::Size(width,height));
 
         ofxCv::toOf(mask2, pix); 
         outImage.setFromPixels(pix);
@@ -577,35 +574,35 @@ void CV::toggleGui()
 }
 
 //--------------------------------------------------------------
-void CV::drawLiveShadow(){
-    ofSetColor(255, 255, 255);
-    recordFbo.draw(0,0,ofGetWidth(),ofGetHeight());
-}
+// void CV::drawLiveShadow(){
+//     ofSetColor(255, 255, 255);
+//     recordFbo.draw(0,0,ofGetWidth(),ofGetHeight());
+// }
 
 //--------------------------------------------------------------
-void CV::drawCalibration(){
+// void CV::drawCalibration(){
 
-}
-//--------------------------------------------------------------
-void CV::drawAllPaths()
-{
+// }
+// //--------------------------------------------------------------
+// void CV::drawAllPaths()
+// {
     
-}
-//--------------------------------------------------------------
-void CV::getAllPaths()
-{
+// }
+// //--------------------------------------------------------------
+// void CV::getAllPaths()
+// {
     
-}
-//--------------------------------------------------------------
-void CV::drawTracking()
-{
+// }
+// //--------------------------------------------------------------
+// void CV::drawTracking()
+// {
      
-}
-//--------------------------------------------------------------
-void CV::drawLive()
-{
+// }
+// //--------------------------------------------------------------
+// void CV::drawLive()
+// {
 
-}
+// }
 //--------------------------------------------------------------
 void CV::draw()
 {
@@ -620,7 +617,7 @@ void CV::draw()
     ofDrawBitmapStringHighlight("Original Image",5,15);
     colorImage.draw(0,20,width/2,height/2);
     ofPopMatrix();
-    x += width/2;
+    x +=  20 + width/2;
 
     ofPushMatrix();
     ofTranslate(x, y);
@@ -641,7 +638,7 @@ void CV::draw()
     ofSetColor(255, 255, 255);
     ofPopStyle();
     ofPopMatrix();
-    x += width/2;
+    x += 20 + width/2;
     
 
     ofPushMatrix();
@@ -653,7 +650,7 @@ void CV::draw()
     maskOutImg.setFromPixels(maskOutPix);
     maskOutImg.draw(0,20,width/2,height/2);
     ofPopMatrix();
-    x += width/2;
+    x += 20 + width/2;
     
     ofPushMatrix();
     ofTranslate(x, y);
@@ -664,7 +661,7 @@ void CV::draw()
     contourFinderImg.setFromPixels(contourFinderPix);
     contourFinderImg.draw(0,20,width/2,height/2);
     ofPopMatrix();
-    x += width/2;
+    x += 20 + width/2;
     
     
     ofPushMatrix();
@@ -677,7 +674,7 @@ void CV::draw()
     i.draw(0,20,width/2,height/2);
 
     ofPopMatrix();
-    x += width/2;
+    x += 20 + width/2;
     
     float brightnessDiff = imgBrightness - lastBrightness;
     ofDrawBitmapStringHighlight("Image Brightness : " + ofToString(imgBrightness) + " Brightness diff : " + ofToString(brightnessDiff), 0, 170);
@@ -722,7 +719,6 @@ void CV::exit(){
 }
 
 
-//To clean up 
 void CV::guiEventCV(ofxUIEventArgs &e){
 
     string name = e.getName();
@@ -730,14 +726,8 @@ void CV::guiEventCV(ofxUIEventArgs &e){
     cout << "got event from: " << name << endl;
     ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
     cout << toggle->getValue() << endl;
-        
-    if (e.getName() == "threshold_min1")
-    {
-        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
-        threshold_min = toggle->getValue();
-        cout << "threshold value :" << threshold_min << endl;
-
-    }else if (e.getName() == "pre_blur")
+    
+    if (e.getName() == "pre_blur")
     {
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
        
@@ -745,18 +735,14 @@ void CV::guiEventCV(ofxUIEventArgs &e){
         if(s%2>0){
             pre_blur = s;
         }
-    }else if (e.getName() == "erosion_size")
-    {
-        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
-        erosion_size = toggle->getValue();
-    }else if (e.getName() == "dilation_size")
-    {
-        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
-        dilation_size = toggle->getValue();
-    }else if (e.getName() == "max_kernel_size")
-    {
-        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
-        max_kernel_size = toggle->getValue();
+    // }else if (e.getName() == "erosion_size")
+    // {
+    //     ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+    //     erosion_size = toggle->getValue();
+    // }else if (e.getName() == "dilation_size")
+    // {
+    //     ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
+    //     dilation_size = toggle->getValue();
     }else if (e.getName() == "morph_size")
     {
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
@@ -765,35 +751,6 @@ void CV::guiEventCV(ofxUIEventArgs &e){
     {
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
         morph_iterations = toggle->getValue();
-    }else if (e.getName() == "post_blur")
-    {
-        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
-       
-        int s = toggle->getValue();
-        if(s%2>0){
-            post_blur = s;
-        }
-        
-    }else if (e.getName() == "post_erosion_size")
-    {
-        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
-        post_erosion_size = toggle->getValue();
-    }else if (e.getName() == "expand_size")
-    {
-        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
-        
-        int s = toggle->getValue();
-        if(s%2>0){
-            expand_size = s;
-            cout << "expand size : " << expand_size << endl;
-
-        }
-
-        
-    }else if (e.getName() == "expand_sigma1")
-    {
-        ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
-        expand_sigma1 = toggle->getValue();
     }else if (e.getName() == "smooth_size")
     {
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
@@ -819,14 +776,6 @@ void CV::guiEventCV(ofxUIEventArgs &e){
     {
         ofxUINumberDialer * toggle = (ofxUINumberDialer *) e.widget;
         presence_timeout_millis = toggle->getValue();
-    }else if (e.getName() == "T1"){
-    
-        ofxUIButton *button = (ofxUIButton *) e.widget; 
-        cout << "value: " << button->getValue() << endl;         
-        //ofxUIButton * toggle = (ofxUIButton *) e.widget;
-        //cout << "updating cam exposture" << endl;
-        //updateCamExposure(button->getValue());
-    
     }else if( e.getName() == "maxBrightnessDiff"){
     
         ofxUINumberDialer * num = (ofxUINumberDialer *) e.widget;
@@ -843,8 +792,6 @@ void CV::guiEventCV(ofxUIEventArgs &e){
         ofxUINumberDialer * num = (ofxUINumberDialer *) e.widget;
         maxContArea = num->getValue();
         cout << "max cont area: " << minContArea << endl;
-
-    
     }
 
 
